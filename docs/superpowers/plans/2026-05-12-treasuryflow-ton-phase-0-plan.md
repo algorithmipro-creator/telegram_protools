@@ -79,7 +79,9 @@ node_modules/
 dist/
 coverage/
 
-# Superpowers visual brainstorming scratch files
+# Worktrees and brainstorming scratch files
+.worktrees/
+worktrees/
 .superpowers/
 
 # OS / editor
@@ -91,9 +93,9 @@ Thumbs.db
 
 - [ ] **Step 2: Verify generated paths are ignored**
 
-Run: `rg -n "^\.acton/|^build/|^gen/|^\.env$|^node_modules/|^\.superpowers/" .gitignore`
+Run: `rg -n "^\.acton/|^build/|^gen/|^\.env$|^node_modules/|^\.worktrees/|^worktrees/|^\.superpowers/" .gitignore`
 
-Expected: output includes all six ignored path patterns.
+Expected: output includes all eight ignored path patterns.
 
 - [ ] **Step 3: Commit**
 
@@ -486,7 +488,7 @@ Expected: commit succeeds.
 
 - [ ] **Step 1: Create ADR directory**
 
-Run: `mkdir -p docs/adr`
+Run: `New-Item -ItemType Directory -Force -Path "docs\adr"`
 
 Expected: `docs/adr` exists.
 
@@ -568,7 +570,7 @@ Expected: commit succeeds.
 
 - [ ] **Step 1: Create research directory**
 
-Run: `mkdir -p docs/research`
+Run: `New-Item -ItemType Directory -Force -Path "docs\research"`
 
 Expected: `docs/research` exists.
 
@@ -705,7 +707,7 @@ Expected: commit succeeds.
 
 - [ ] **Step 1: Create beta directory**
 
-Run: `mkdir -p docs/beta`
+Run: `New-Item -ItemType Directory -Force -Path "docs\beta"`
 
 Expected: `docs/beta` exists.
 
@@ -903,19 +905,23 @@ Expected: commit succeeds.
 
 Run:
 
-```bash
-test -f .gitignore && \
-test -f docs/product-spec.md && \
-test -f docs/technical-spec.md && \
-test -f docs/security-model.md && \
-test -f docs/beta-test-plan.md && \
-test -f docs/architecture-decision-records.md && \
-test -f docs/adr/0001-dual-testnet-track.md && \
-test -f docs/research/official-multisig-v2-review.md && \
-test -f docs/research/acton-toolchain-validation.md && \
-test -f docs/beta/architecture-scorecard.md && \
-test -f docs/beta/feedback-form.md && \
-test -f docs/implementation-plan-index.md
+```powershell
+$required = @(
+  ".gitignore",
+  "docs/product-spec.md",
+  "docs/technical-spec.md",
+  "docs/security-model.md",
+  "docs/beta-test-plan.md",
+  "docs/architecture-decision-records.md",
+  "docs/adr/0001-dual-testnet-track.md",
+  "docs/research/official-multisig-v2-review.md",
+  "docs/research/acton-toolchain-validation.md",
+  "docs/beta/architecture-scorecard.md",
+  "docs/beta/feedback-form.md",
+  "docs/implementation-plan-index.md"
+)
+$missing = $required | Where-Object { -not (Test-Path -LiteralPath $_) }
+if ($missing.Count -gt 0) { throw "Missing required files: $($missing -join ', ')" }
 ```
 
 Expected: command exits with status `0` and no output.
