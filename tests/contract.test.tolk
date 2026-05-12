@@ -1,6 +1,7 @@
 import "@acton/ffi"
 import "@acton/emulation/network"
 import "@acton/testing/expect"
+import "@acton/types/transaction"
 
 import "@contracts/types"
 import "@wrappers/Treasury.gen"
@@ -281,6 +282,25 @@ get fun `test execute after threshold sends TON payout`() {
     expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Executed);
 }
 
+get fun `test execute allows exact reserve before inbound value`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    createProposal(contract, ownerA, recipient.address, ton("0.90"));
+    approveProposal(contract, ownerB, 0);
+    testSetBalance(contract.address, ton("1.00"));
+
+    val res = contract.sendExecuteProposal(ownerA.address, 0, { value: ton("0.05") });
+    expect(res).toHaveSuccessfulTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    expect(res).toHaveTx({
+        from: contract.address,
+        to: recipient.address,
+        value: ton("0.90"),
+    });
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Executed);
+}
+
 get fun `test executed proposal cannot execute twice`() {
     val (contract, ownerA, ownerB, recipient) = setupTreasury();
     createProposal(contract, ownerA, recipient.address, ton("0.20"));
@@ -297,7 +317,7 @@ get fun `test executed proposal cannot execute twice`() {
 
 get fun `test fee reserve prevents draining treasury`() {
     val (contract, ownerA, ownerB, recipient) = setupTreasury();
-    createProposal(contract, ownerA, recipient.address, ton("0.95"));
+    createProposal(contract, ownerA, recipient.address, ton("1.05"));
     approveProposal(contract, ownerB, 0);
 
     val res = contract.sendExecuteProposal(ownerA.address, 0, { value: ton("0.05") });
@@ -420,9 +440,48 @@ fun testSetNow(now: uint32) {
     ffi.setNow(now);
 }
 
+fun testSetBalance(addr: address, balance: coins) {
+    var shard = testGetShardAccount(addr)!;
+    var account = shard.account.load();
+    match (account) {
+        TlbAccountInfo => {
+            var storage = account.storage;
+            var currency = storage.balance;
+            currency.grams = balance;
+            storage.balance = currency;
+            account.storage = storage;
+            shard.account = beginCell().storeAny<TlbAccount>(account).endCell() as Cell<TlbAccount>;
+            testSetShardAccount(addr, shard);
+        }
+        TlbAccountNone => {
+            throw 999;
+        }
+    }
+}
+
+fun testGetShardAccount(addr: address): TlbShardAccount? {
+    val raw = ffi.getShardAccount(addr);
+    if (raw == null) {
+        return null;
+    }
+    return TlbShardAccount.fromCell(raw);
+}
+
+fun testSetShardAccount(addr: address, account: TlbShardAccount) {
+    ffi.setShardAccount(addr, account.toCell());
+}
+
 // SAFETY: Uses Acton's documented emulation EXTCALL 28 to move test blockchain time.
 fun ffi.setNow(now: int): void
     asm "28 EXTCALL"
+
+// SAFETY: Test-only mirror of Acton's emulation shard-account reader.
+fun ffi.getShardAccount(addr: address): cell?
+    asm "33 EXTCALL"
+
+// SAFETY: Test-only mirror of Acton's emulation shard-account writer.
+fun ffi.setShardAccount(addr: address, account: cell?): void
+    asm "34 EXTCALL"
 
 struct TestTreasury {
     address: address

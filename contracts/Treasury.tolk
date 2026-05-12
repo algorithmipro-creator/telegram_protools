@@ -75,7 +75,7 @@ fun onInternalMessage(in: InMessage) {
             assert (proposal.approvalCount >= storage.threshold) throw Errors.ThresholdNotReached;
             val availableBalance = contract.getOriginalBalance() - in.valueCoins;
             assert (
-                availableBalance >= proposal.amount + storage.feeReserve + in.valueCoins
+                availableBalance >= proposal.amount + storage.feeReserve
             ) throw Errors.InsufficientBalance;
 
             proposal.status = ProposalStatus.Executed;
