@@ -930,11 +930,15 @@ Expected: command exits with status `0` and no output.
 
 Run: `rg -n "T[B]D|TO[D]O|FIX[M]E|x[x]x" docs .gitignore`
 
+If `rg` is unavailable, use a read-only fallback search for the same pattern and report the fallback.
+
 Expected: no matches.
 
 - [ ] **Step 3: Verify mainnet is blocked in security and plan docs**
 
 Run: `rg -n "Mainnet is forbidden|Do not start mainnet|mainnet work" docs/security-model.md docs/implementation-plan-index.md`
+
+If `rg` is unavailable, use a read-only fallback search for the same strings and report the fallback.
 
 Expected: matches in both files.
 
