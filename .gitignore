@@ -1,0 +1,28 @@
+# Acton generated state and build outputs
+.acton/
+build/
+gen/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+wallets.toml
+global.wallets.toml
+global.libraries.toml
+
+# Node / frontend
+node_modules/
+dist/
+coverage/
+
+# Worktrees and brainstorming scratch files
+.worktrees/
+worktrees/
+.superpowers/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
