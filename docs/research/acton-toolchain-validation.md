@@ -8,20 +8,25 @@ Confirm that Acton can support the TreasuryFlow TON development workflow: scaffo
 
 | Area | Command | Expected Result | Recorded Result |
 |---|---|---|---|
-| Version | `acton --version` | Acton 1.0.0 or later | Not run yet |
-| Help | `acton --help` | Command list is printed | Not run yet |
-| Scaffold | `acton new treasury-flow-ton --template counter --app` | Project scaffold is created | Not run yet |
-| Build | `acton build` | Contracts compile | Not run yet |
-| Test | `acton test` | Tests pass | Not run yet |
-| Lint | `acton check` | No critical diagnostics | Not run yet |
-| Format | `acton fmt --check` | Formatting check passes | Not run yet |
-| Wrappers | `acton wrapper --all --ts` | TypeScript wrappers generated | Not run yet |
-| Gas snapshot | `acton test --snapshot gas-baseline.json` | Snapshot file created | Not run yet |
-| Verification dry-run | `acton verify <contract> --address <address> --dry-run` | Verifier accepts sources | Not run yet |
+| Version | `acton --version` | Acton 1.0.0 or later | PASS: `acton 1.0.0 (3a4f0dc 2026-05-11)` in WSL |
+| Help | `acton --help` | Command list is printed | PASS: help printed in WSL |
+| Scaffold | `acton new . --template empty --name treasury-flow-ton --description 'TreasuryFlow TON contracts' --license MIT --overwrite` | Project scaffold is created | PASS: root Acton scaffold created |
+| Build | `acton build` | Contracts compile | PASS: empty scaffold builds |
+| Test | `acton test` | Tests pass | PASS: empty scaffold tests pass |
+| Lint | `acton check` | No critical diagnostics | PASS: no critical diagnostics |
+| Format | `acton fmt --check` | Formatting check passes | PASS: formatting check passes |
+| Wrappers | `acton wrapper --all` | Tolk wrappers generated | Not run in scaffold baseline |
+| TypeScript wrappers | `acton wrapper --all --ts` | TypeScript wrappers generated | Not run until Treasury ABI exists |
+| Gas snapshot | `acton test --snapshot gas-baseline.json` | Snapshot file created | Not run until Treasury tests exist |
+| Verification dry-run | `acton verify <contract> --address <address> --dry-run` | Verifier accepts sources | Not run until testnet deployment exists |
 
 ## Validation Notes
 
 Use this file to record the exact local environment and any Windows-specific issues, including PowerShell execution policy problems, PATH problems, Node.js version problems, and Acton installation status.
+
+Native Windows is unsupported by Acton. Local contract development runs through WSL Ubuntu 22+ from the Windows repository checkout. PowerShell commands invoke Acton through `wsl -- bash -lc ...`.
+
+WSL outbound network access was unavailable during local validation, so Acton was installed from the official `acton-x86_64-unknown-linux-gnu.tar.gz` release archive downloaded by Windows and verified against the installer SHA-256. `acton doctor` reported local toolchain health, but external TON API reachability checks were unverified from WSL.
 
 ## Minimum Accepted Toolchain
 
