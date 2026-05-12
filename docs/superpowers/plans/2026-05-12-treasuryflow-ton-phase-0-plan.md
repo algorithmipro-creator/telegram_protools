@@ -928,7 +928,7 @@ Expected: command exits with status `0` and no output.
 
 - [ ] **Step 2: Scan for unresolved markers**
 
-Run the required unresolved-marker scan across `docs` and `.gitignore`.
+Run: `rg -n "T[B]D|TO[D]O|FIX[M]E|x[x]x" docs .gitignore`
 
 Expected: no matches.
 
