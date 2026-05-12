@@ -251,6 +251,103 @@ get fun `test expired proposal cannot be approved`() {
     expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Expired);
 }
 
+get fun `test execute before threshold fails`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    val res = contract.sendExecuteProposal(ownerA.address, 0, { value: ton("0.05") });
+    expect(res).toHaveFailedTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ThresholdNotReached,
+    });
+}
+
+get fun `test execute after threshold sends TON payout`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    createProposal(contract, ownerA, recipient.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+
+    val res = contract.sendExecuteProposal(ownerA.address, 0, { value: ton("0.05") });
+    expect(res).toHaveSuccessfulTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    expect(res).toHaveTx({
+        from: contract.address,
+        to: recipient.address,
+        value: ton("0.20"),
+    });
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Executed);
+}
+
+get fun `test executed proposal cannot execute twice`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    createProposal(contract, ownerA, recipient.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+    executeProposal(contract, ownerA, 0);
+
+    val res = contract.sendExecuteProposal(ownerB.address, 0, { value: ton("0.05") });
+    expect(res).toHaveFailedTx<ExecuteProposal>({
+        from: ownerB.address,
+        to: contract.address,
+        exitCode: Errors.ProposalNotPending,
+    });
+}
+
+get fun `test fee reserve prevents draining treasury`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    createProposal(contract, ownerA, recipient.address, ton("0.95"));
+    approveProposal(contract, ownerB, 0);
+
+    val res = contract.sendExecuteProposal(ownerA.address, 0, { value: ton("0.05") });
+    expect(res).toHaveFailedTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InsufficientBalance,
+    });
+}
+
+get fun `test expired proposal cannot be executed`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    val create = contract.sendCreatePayoutProposal(
+        ownerA.address,
+        recipient.address,
+        ton("0.20"),
+        blockchain.now() + 1,
+        { value: ton("0.05") },
+    );
+    expect(create).toHaveSuccessfulTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    approveProposal(contract, ownerB, 0);
+
+    testSetNow((blockchain.now() + 2) as uint32);
+
+    val res = contract.sendExecuteProposal(ownerA.address, 0, { value: ton("0.05") });
+    expect(res).toHaveFailedTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalExpired,
+    });
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Expired);
+}
+
+get fun `test executed proposal cannot be cancelled`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    createProposal(contract, ownerA, recipient.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+    executeProposal(contract, ownerA, 0);
+
+    val res = contract.sendCancelProposal(ownerA.address, 0, { value: ton("0.05") });
+    expect(res).toHaveFailedTx<CancelProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalNotPending,
+    });
+}
+
 fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
     val ownerA = testTreasury("ownerA");
     val ownerB = testTreasury("ownerB");
@@ -293,6 +390,14 @@ fun createProposal(contract: Treasury, creator: TestTreasury, recipient: address
 fun approveProposal(contract: Treasury, owner: TestTreasury, proposalId: uint64) {
     val res = contract.sendApproveProposal(owner.address, proposalId, { value: ton("0.05") });
     expect(res).toHaveSuccessfulTx<ApproveProposal>({
+        from: owner.address,
+        to: contract.address,
+    });
+}
+
+fun executeProposal(contract: Treasury, owner: TestTreasury, proposalId: uint64) {
+    val res = contract.sendExecuteProposal(owner.address, proposalId, { value: ton("0.05") });
+    expect(res).toHaveSuccessfulTx<ExecuteProposal>({
         from: owner.address,
         to: contract.address,
     });

@@ -65,10 +65,24 @@ fun onInternalMessage(in: InMessage) {
             storage.save();
         }
         ExecuteProposal => {
-            val storage = lazy Storage.load();
+            var storage = lazy Storage.load();
             storage.assertValidConfig();
-            assert (storage.isOwner(in.senderAddress)) throw Errors.NotOwner;
-            throw Errors.ProposalNotFound;
+            storage.assertOwner(in.senderAddress);
+
+            var proposal = storage.mustGetProposal(msg.proposalId);
+            assert (proposal.status == ProposalStatus.Pending) throw Errors.ProposalNotPending;
+            assert (!proposal.isExpired()) throw Errors.ProposalExpired;
+            assert (proposal.approvalCount >= storage.threshold) throw Errors.ThresholdNotReached;
+            val availableBalance = contract.getOriginalBalance() - in.valueCoins;
+            assert (
+                availableBalance >= proposal.amount + storage.feeReserve + in.valueCoins
+            ) throw Errors.InsufficientBalance;
+
+            proposal.status = ProposalStatus.Executed;
+            storage.proposals.set(msg.proposalId, proposal.toCell());
+            storage.save();
+
+            sendTonPayout(proposal.recipient, proposal.amount);
         }
         CancelProposal => {
             var storage = lazy Storage.load();
@@ -94,6 +108,15 @@ fun onInternalMessage(in: InMessage) {
 }
 
 fun onBouncedMessage(_in: InMessageBounced) {}
+
+fun sendTonPayout(recipient: address, amount: coins) {
+    val payout = createMessage({
+        bounce: false,
+        dest: recipient,
+        value: amount,
+    });
+    payout.send(SEND_MODE_PAY_FEES_SEPARATELY);
+}
 
 get fun owner_count(): uint8 {
     val storage = lazy Storage.load();
