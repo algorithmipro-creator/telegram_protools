@@ -7,6 +7,11 @@ gen/
 .env
 .env.*
 !.env.example
+*.key
+*.pem
+*.secret
+secrets/
+credentials/
 wallets.toml
 global.wallets.toml
 global.libraries.toml
@@ -15,6 +20,9 @@ global.libraries.toml
 node_modules/
 dist/
 coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Worktrees and brainstorming scratch files
 .worktrees/

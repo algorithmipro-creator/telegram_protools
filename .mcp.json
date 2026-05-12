@@ -3,6 +3,10 @@
     "context7": {
       "command": "npx.cmd",
       "args": ["-y", "@upstash/context7-mcp@latest"]
+    },
+    "git": {
+      "command": "python",
+      "args": ["-m", "mcp_server_git", "--repository", "."]
     }
   }
 }
