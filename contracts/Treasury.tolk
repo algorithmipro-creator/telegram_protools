@@ -45,10 +45,24 @@ fun onInternalMessage(in: InMessage) {
             storage.save();
         }
         ApproveProposal => {
-            val storage = lazy Storage.load();
+            var storage = lazy Storage.load();
             storage.assertValidConfig();
-            assert (storage.isOwner(in.senderAddress)) throw Errors.NotOwner;
-            throw Errors.ProposalNotFound;
+            storage.assertOwner(in.senderAddress);
+
+            var proposal = storage.mustGetProposal(msg.proposalId);
+            assert (proposal.status == ProposalStatus.Pending) throw Errors.ProposalNotPending;
+            assert (!proposal.isExpired()) throw Errors.ProposalExpired;
+
+            val key = ApprovalKey {
+                proposalId: msg.proposalId,
+                owner: in.senderAddress,
+            };
+            assert (!storage.approvals.exists(key)) throw Errors.AlreadyApproved;
+
+            storage.approvals.set(key, APPROVAL_KEY_VALUE);
+            proposal.approvalCount = proposal.approvalCount + 1;
+            storage.proposals.set(msg.proposalId, proposal.toCell());
+            storage.save();
         }
         ExecuteProposal => {
             val storage = lazy Storage.load();

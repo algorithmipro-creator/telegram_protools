@@ -145,6 +145,48 @@ get fun `test create proposal rejects invalid amount and expiry`() {
     });
 }
 
+get fun `test second owner approves proposal`() {
+    val (contract, ownerA, ownerB, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    val res = contract.sendApproveProposal(ownerB.address, 0, { value: ton("0.05") });
+    expect(res).toHaveSuccessfulTx<ApproveProposal>({
+        from: ownerB.address,
+        to: contract.address,
+    });
+
+    val proposal = contract.proposal(0);
+    expect(proposal.approvalCount).toEqual(2);
+    expect(proposal.status).toEqual(ProposalViewStatus.Executable);
+    expect(contract.hasApproval(0, ownerB.address)).toBeTrue();
+}
+
+get fun `test duplicate approval is rejected`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    val res = contract.sendApproveProposal(ownerA.address, 0, { value: ton("0.05") });
+    expect(res).toHaveFailedTx<ApproveProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.AlreadyApproved,
+    });
+
+    expect(contract.proposal(0).approvalCount).toEqual(1);
+}
+
+get fun `test non owner cannot approve proposal`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    val res = contract.sendApproveProposal(outsider.address, 0, { value: ton("0.05") });
+    expect(res).toHaveFailedTx<ApproveProposal>({
+        from: outsider.address,
+        to: contract.address,
+        exitCode: Errors.NotOwner,
+    });
+}
+
 fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
     val ownerA = testTreasury("ownerA");
     val ownerB = testTreasury("ownerB");
@@ -168,6 +210,20 @@ fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
     expect(res).toHaveSuccessfulDeploy({ to: contract.address });
 
     return (contract, ownerA, ownerB, outsider);
+}
+
+fun createProposal(contract: Treasury, creator: TestTreasury, recipient: address, amount: coins) {
+    val res = contract.sendCreatePayoutProposal(
+        creator.address,
+        recipient,
+        amount,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: ton("0.05") },
+    );
+    expect(res).toHaveSuccessfulTx<CreatePayoutProposal>({
+        from: creator.address,
+        to: contract.address,
+    });
 }
 
 struct TestTreasury {
