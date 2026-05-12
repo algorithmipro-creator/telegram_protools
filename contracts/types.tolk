@@ -36,11 +36,6 @@ enum ProposalViewStatus: uint8 {
     Expired = 4
 }
 
-struct ApprovalKey {
-    proposalId: uint64
-    owner: address
-}
-
 struct PayoutProposal {
     id: uint64
     creator: address
@@ -70,7 +65,7 @@ struct Storage {
     feeReserve: coins
     owners: map<address, uint8>
     proposals: map<uint64, Cell<PayoutProposal>>
-    approvals: map<ApprovalKey, uint8>
+    approvals: map<uint256, uint8>
 }
 
 fun Storage.load(): Storage {
@@ -104,6 +99,10 @@ fun Storage.isOwner(self, owner: address): bool {
 
 fun Storage.assertOwner(self, owner: address) {
     assert (self.isOwner(owner)) throw Errors.NotOwner;
+}
+
+fun approvalKey(proposalId: uint64, owner: address): uint256 {
+    return beginCell().storeUint(proposalId, 64).storeAddress(owner).endCell().hash();
 }
 
 fun Storage.mustGetProposal(self, proposalId: uint64): PayoutProposal {
