@@ -1,3 +1,4 @@
+import "@acton/ffi"
 import "@acton/emulation/network"
 import "@acton/testing/expect"
 
@@ -187,6 +188,69 @@ get fun `test non owner cannot approve proposal`() {
     });
 }
 
+get fun `test creator cancels pending non executable proposal`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    val res = contract.sendCancelProposal(ownerA.address, 0, { value: ton("0.05") });
+    expect(res).toHaveSuccessfulTx<CancelProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Cancelled);
+}
+
+get fun `test non creator cannot cancel proposal`() {
+    val (contract, ownerA, ownerB, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    val res = contract.sendCancelProposal(ownerB.address, 0, { value: ton("0.05") });
+    expect(res).toHaveFailedTx<CancelProposal>({
+        from: ownerB.address,
+        to: contract.address,
+        exitCode: Errors.NotCreator,
+    });
+}
+
+get fun `test executable proposal cannot be cancelled`() {
+    val (contract, ownerA, ownerB, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+
+    val res = contract.sendCancelProposal(ownerA.address, 0, { value: ton("0.05") });
+    expect(res).toHaveFailedTx<CancelProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.AlreadyExecutable,
+    });
+}
+
+get fun `test expired proposal cannot be approved`() {
+    val (contract, ownerA, ownerB, outsider) = setupTreasury();
+    val res = contract.sendCreatePayoutProposal(
+        ownerA.address,
+        outsider.address,
+        ton("0.20"),
+        blockchain.now() + 1,
+        { value: ton("0.05") },
+    );
+    expect(res).toHaveSuccessfulTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    testSetNow((blockchain.now() + 2) as uint32);
+
+    val approval = contract.sendApproveProposal(ownerB.address, 0, { value: ton("0.05") });
+    expect(approval).toHaveFailedTx<ApproveProposal>({
+        from: ownerB.address,
+        to: contract.address,
+        exitCode: Errors.ProposalExpired,
+    });
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Expired);
+}
+
 fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
     val ownerA = testTreasury("ownerA");
     val ownerB = testTreasury("ownerB");
@@ -225,6 +289,35 @@ fun createProposal(contract: Treasury, creator: TestTreasury, recipient: address
         to: contract.address,
     });
 }
+
+fun approveProposal(contract: Treasury, owner: TestTreasury, proposalId: uint64) {
+    val res = contract.sendApproveProposal(owner.address, proposalId, { value: ton("0.05") });
+    expect(res).toHaveSuccessfulTx<ApproveProposal>({
+        from: owner.address,
+        to: contract.address,
+    });
+}
+
+// SAFETY: Test-only mirror of Acton's emulation time helper, limited to C7 reads.
+fun testGetC7OutsideContract(): tuple
+    asm "c7 PUSHCTR"
+
+// SAFETY: Test-only mirror of Acton's emulation time helper, limited to restoring C7.
+fun testSetC7OutsideContract(c7: tuple): void
+    asm "c7 POPCTR"
+
+fun testSetNow(now: uint32) {
+    var c7 = testGetC7OutsideContract();
+    var params = c7.get(0) as tuple;
+    params.set(now, 3);
+    c7.set(params, 0);
+    testSetC7OutsideContract(c7);
+    ffi.setNow(now);
+}
+
+// SAFETY: Uses Acton's documented emulation EXTCALL 28 to move test blockchain time.
+fun ffi.setNow(now: int): void
+    asm "28 EXTCALL"
 
 struct TestTreasury {
     address: address

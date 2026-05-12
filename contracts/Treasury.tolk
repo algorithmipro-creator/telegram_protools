@@ -71,10 +71,19 @@ fun onInternalMessage(in: InMessage) {
             throw Errors.ProposalNotFound;
         }
         CancelProposal => {
-            val storage = lazy Storage.load();
+            var storage = lazy Storage.load();
             storage.assertValidConfig();
-            assert (storage.isOwner(in.senderAddress)) throw Errors.NotOwner;
-            throw Errors.ProposalNotFound;
+            storage.assertOwner(in.senderAddress);
+
+            var proposal = storage.mustGetProposal(msg.proposalId);
+            assert (proposal.status == ProposalStatus.Pending) throw Errors.ProposalNotPending;
+            assert (!proposal.isExpired()) throw Errors.ProposalExpired;
+            assert (proposal.creator == in.senderAddress) throw Errors.NotCreator;
+            assert (proposal.approvalCount < storage.threshold) throw Errors.AlreadyExecutable;
+
+            proposal.status = ProposalStatus.Cancelled;
+            storage.proposals.set(msg.proposalId, proposal.toCell());
+            storage.save();
         }
         else => {
             assert (in.body.isEmpty()) throw Errors.InvalidMessage;
