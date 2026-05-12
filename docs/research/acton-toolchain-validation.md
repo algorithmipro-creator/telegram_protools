@@ -28,6 +28,8 @@ Native Windows is unsupported by Acton. Local contract development runs through 
 
 WSL outbound network access was unavailable during local validation, so Acton was installed from the official `acton-x86_64-unknown-linux-gnu.tar.gz` release archive downloaded by Windows and verified against the installer SHA-256. `acton doctor` reported local toolchain health, but external TON API reachability checks were unverified from WSL.
 
+Treasury TypeScript wrapper generation is blocked in the current WSL setup. `acton wrapper Treasury --ts --output-dir wrappers-ts` invokes `npx @ton/tolk-abi-to-typescript@0.5.0` from WSL, but WSL resolves `npx` to the Windows shim at `/mnt/c/Program Files/nodejs/npx` and has no Linux `node` binary in PATH. The Acton command fails with `Error: \`npx @ton/tolk-abi-to-typescript@0.5.0\` failed with exit code 1: ���誮� ������� ��������� ��ப�.` Windows-side checks passed with `gh version 2.92.0` and `npx.cmd @ton/tolk-abi-to-typescript@0.5.0 --help`, but rerunning the Acton TS wrapper command from WSL failed with the same error, so `wrappers-ts/Treasury.gen.ts` was not generated.
+
 ## Minimum Accepted Toolchain
 
 - Acton 1.0.0 or later.

@@ -6,13 +6,15 @@ import "@acton/emulation/scripts"
 import "@contracts/types"
 
 fun main() {
-    val deployer = scripts.wallet("deployer");
+    val ownerA = scripts.wallet("ownerA");
+    val ownerB = scripts.wallet("ownerB");
 
     var owners: map<address, uint8> = [];
-    owners.set(deployer.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_KEY_VALUE);
+    owners.set(ownerB.address, OWNER_KEY_VALUE);
 
-    val ownerCount: uint8 = 1;
-    val threshold: uint8 = 1;
+    val ownerCount: uint8 = 2;
+    val threshold: uint8 = 2;
     val stateInit = ContractState {
         code: build("Treasury"),
         data: Storage {
@@ -32,11 +34,14 @@ fun main() {
         dest: { stateInit },
     });
 
-    val res = net.send(deployer.address, deployMsg);
+    val res = net.send(ownerA.address, deployMsg);
     if (res.waitForFirstTransaction() == null) {
+        println("Treasury deployment transaction was not observed");
         return;
     }
 
-    println("Deployed Treasury contract to {}", address);
-    println("Threshold is {} of {}", threshold, ownerCount);
+    println("TREASURY_ADDRESS={}", address);
+    println("Owner count: {}", ownerCount);
+    println("Threshold: {}", threshold);
+    println("Fee reserve: {:ton}", DEFAULT_FEE_RESERVE);
 }
