@@ -7,9 +7,9 @@ license = "MIT"
 [toolchain]
 acton = "1.0.0"
 
-[contracts.Empty]
-display-name = "Empty"
-src = "contracts/Empty.tolk"
+[contracts.Treasury]
+display-name = "Treasury"
+src = "contracts/Treasury.tolk"
 depends = []
 
 [test]

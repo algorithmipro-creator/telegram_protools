@@ -1,78 +1,138 @@
 import "@acton/emulation/network"
-import "@acton/emulation/testing"
 import "@acton/testing/expect"
 
 import "@contracts/types"
-import "@wrappers/Empty.gen"
+import "@wrappers/Treasury.gen"
 
-get fun `test deploy exposes initial owner`() {
-    val (contract, deployer, _) = setupTest();
-    expect(contract.owner()).toEqual(deployer.address);
+get fun `test deploy exposes treasury config`() {
+    val (contract, ownerA, ownerB, _) = setupTreasury();
+
+    expect(contract.ownerCount()).toEqual(2);
+    expect(contract.threshold()).toEqual(2);
+    expect(contract.proposalSeqno()).toEqual(0);
+    expect(contract.feeReserve()).toEqual(DEFAULT_FEE_RESERVE);
+    expect(contract.isOwner(ownerA.address)).toBeTrue();
+    expect(contract.isOwner(ownerB.address)).toBeTrue();
 }
 
-get fun `test owner can transfer ownership`() {
-    val (contract, deployer, notDeployer) = setupTest();
+get fun `test non owner cannot create proposal`() {
+    val (contract, _, _, outsider) = setupTreasury();
 
-    val res = contract.sendChangeOwner(
-        deployer.address,
-        notDeployer.address,
+    val res = contract.sendCreatePayoutProposal(
+        outsider.address,
+        outsider.address,
+        ton("0.20"),
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
         { value: ton("0.05") },
     );
-    expect(res).toHaveSuccessfulTx<ChangeOwner>({
-        from: deployer.address,
-        to: contract.address,
-    });
 
-    expect(contract.owner()).toEqual(notDeployer.address);
-}
-
-get fun `test non-owner cannot transfer ownership`() {
-    val (contract, deployer, notDeployer) = setupTest();
-
-    val res = contract.sendChangeOwner(
-        notDeployer.address,
-        notDeployer.address,
-        { value: ton("0.05") },
-    );
-    expect(res).toHaveFailedTx({
-        from: notDeployer.address,
+    expect(res).toHaveFailedTx<CreatePayoutProposal>({
+        from: outsider.address,
         to: contract.address,
         exitCode: Errors.NotOwner,
     });
-
-    expect(contract.owner()).toEqual(deployer.address);
 }
 
-get fun `test unknown message fails with named error`() {
-    val (contract, deployer, _) = setupTest();
+get fun `test plain TON deposit succeeds`() {
+    val (contract, _, _, outsider) = setupTreasury();
 
-    val res = contract.sendAny(
-        deployer.address,
-        beginCell().storeUint(0x999, 32).endCell(),
-        { value: ton("0.05") },
-    );
-    expect(res).toHaveFailedTx({
-        from: deployer.address,
-        to: contract.address,
-        exitCode: Errors.InvalidMessage,
-    });
-
-    val res2 = contract.sendAny(deployer.address, createEmptyCell(), { value: ton("0.05") });
-    expect(res2).toHaveSuccessfulTx({
-        from: deployer.address,
+    val res = contract.sendAny(outsider.address, createEmptyCell(), { value: ton("0.30") });
+    expect(res).toHaveSuccessfulTx({
+        from: outsider.address,
         to: contract.address,
     });
 }
 
-fun setupTest(): (Empty, Treasury, Treasury) {
-    val deployer = testing.treasury("deployer");
-    val notDeployer = testing.treasury("notDeployer");
+get fun `test invalid treasury config is rejected`() {
+    val ownerA = testTreasury("invalidOwnerA");
+    val ownerB = testTreasury("invalidOwnerB");
 
-    val contract = Empty.fromStorage({ owner: deployer.address });
-    val res = contract.deploy(deployer.address, { value: ton("0.05") });
-    expect(res).toHaveSuccessfulDeploy({
-        to: contract.address,
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_KEY_VALUE);
+    owners.set(ownerB.address, OWNER_KEY_VALUE);
+
+    val badThreshold = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        threshold: 3,
+        proposalSeqno: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+        approvals: [],
+    });
+    val thresholdDeploy = badThreshold.deploy(ownerA.address, { value: ton("1.00") });
+    expect(thresholdDeploy).toHaveFailedTx({
+        from: ownerA.address,
+        to: badThreshold.address,
+        exitCode: Errors.InvalidThreshold,
     });
 
-    return (contract, deployer, notDeployer);
+    var duplicateCollapsedOwners: map<address, uint8> = [];
+    duplicateCollapsedOwners.set(ownerA.address, OWNER_KEY_VALUE);
+    val duplicateCollapsed = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        threshold: 1,
+        proposalSeqno: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners: duplicateCollapsedOwners,
+        proposals: [],
+        approvals: [],
+    });
+    val duplicateDeploy = duplicateCollapsed.deploy(ownerA.address, { value: ton("1.00") });
+    expect(duplicateDeploy).toHaveFailedTx({
+        from: ownerA.address,
+        to: duplicateCollapsed.address,
+        exitCode: Errors.DuplicateOwner,
+    });
 }
+
+fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
+    val ownerA = testTreasury("ownerA");
+    val ownerB = testTreasury("ownerB");
+    val outsider = testTreasury("outsider");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_KEY_VALUE);
+    owners.set(ownerB.address, OWNER_KEY_VALUE);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        threshold: 2,
+        proposalSeqno: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+        approvals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveSuccessfulDeploy({ to: contract.address });
+
+    return (contract, ownerA, ownerB, outsider);
+}
+
+struct TestTreasury {
+    address: address
+}
+
+fun testTreasury(name: string): TestTreasury {
+    val stateInit: ContractState = {
+        code: testTreasuryCode(),
+        data: beginCell().storeSlice(name.beginParse()).endCell(),
+    };
+    val deployer = address("0:0000000000000000000000000000000000000000000000000000000000000000");
+    val address = AutoDeployAddress { stateInit }.calculateAddress();
+    net.registerAddress(address, name);
+
+    val deployMsg = createMessage({
+        bounce: false,
+        value: ton("10000"),
+        dest: { workchain: 0, stateInit },
+    });
+    net.send(deployer, deployMsg);
+    return TestTreasury { address };
+}
+
+fun testTreasuryCode(): cell asm """
+    "te6cckEBBAEARQABFP8A9KQT9LzyyAsBAgEgAwIAWvLT/+1E0NP/0RK68qL0BNH4AH+OFiGAEPR4b6UgmALTB9QwAfsAkTLiAbPmWwAE0jD+omUe" base64>B B>boc PUSHREF
+"""
