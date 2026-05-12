@@ -13,10 +13,36 @@ fun onInternalMessage(in: InMessage) {
 
     match (msg) {
         CreatePayoutProposal => {
-            val storage = lazy Storage.load();
+            var storage = lazy Storage.load();
             storage.assertValidConfig();
-            assert (storage.isOwner(in.senderAddress)) throw Errors.NotOwner;
-            throw Errors.InvalidMessage;
+            storage.assertOwner(in.senderAddress);
+            assert (msg.amount > 0) throw Errors.InvalidAmount;
+            assert (msg.expiresAt > blockchain.now()) throw Errors.InvalidExpiry;
+
+            val proposalId = storage.proposalSeqno;
+            val proposal = PayoutProposal {
+                id: proposalId,
+                creator: in.senderAddress,
+                recipient: msg.recipient,
+                amount: msg.amount,
+                createdAt: blockchain.now() as uint32,
+                expiresAt: msg.expiresAt,
+                status: ProposalStatus.Pending,
+                approvalCount: 1,
+            };
+
+            storage.proposals.set(proposalId, proposal.toCell());
+            storage
+                .approvals
+                .set(
+                    ApprovalKey {
+                        proposalId,
+                        owner: in.senderAddress,
+                    },
+                    APPROVAL_KEY_VALUE,
+                );
+            storage.proposalSeqno = proposalId + 1;
+            storage.save();
         }
         ApproveProposal => {
             val storage = lazy Storage.load();
@@ -69,4 +95,15 @@ get fun fee_reserve(): coins {
 get fun is_owner(owner: address): bool {
     val storage = lazy Storage.load();
     return storage.isOwner(owner);
+}
+
+get fun proposal(proposalId: uint64): ProposalView {
+    val storage = lazy Storage.load();
+    val proposal = storage.mustGetProposal(proposalId);
+    return proposal.toView(storage.threshold);
+}
+
+get fun has_approval(proposalId: uint64, owner: address): bool {
+    val storage = lazy Storage.load();
+    return storage.approvals.exists(ApprovalKey { proposalId, owner });
 }

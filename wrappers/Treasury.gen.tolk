@@ -134,3 +134,11 @@ fun Treasury.feeReserve(self): coins {
 fun Treasury.isOwner(self, owner: address): bool {
     return net.runGetMethod(self.address, "is_owner", [owner]);
 }
+
+fun Treasury.proposal(self, proposalId: uint64): ProposalView {
+    return net.runGetMethod(self.address, "proposal", [proposalId]);
+}
+
+fun Treasury.hasApproval(self, proposalId: uint64, owner: address): bool {
+    return net.runGetMethod(self.address, "has_approval", [proposalId, owner]);
+}

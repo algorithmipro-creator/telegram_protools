@@ -86,6 +86,65 @@ get fun `test invalid treasury config is rejected`() {
     });
 }
 
+get fun `test owner creates payout proposal with creator auto approval`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    val expiresAt = blockchain.now() + DEFAULT_EXPIRY_SECONDS;
+
+    val res = contract.sendCreatePayoutProposal(
+        ownerA.address,
+        outsider.address,
+        ton("0.20"),
+        expiresAt,
+        { value: ton("0.05") },
+    );
+
+    expect(res).toHaveSuccessfulTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    val proposal = contract.proposal(0);
+    expect(proposal.id).toEqual(0);
+    expect(proposal.creator).toEqual(ownerA.address);
+    expect(proposal.recipient).toEqual(outsider.address);
+    expect(proposal.amount).toEqual(ton("0.20"));
+    expect(proposal.expiresAt).toEqual(expiresAt);
+    expect(proposal.status).toEqual(ProposalViewStatus.Pending);
+    expect(proposal.approvalCount).toEqual(1);
+    expect(contract.hasApproval(0, ownerA.address)).toBeTrue();
+    expect(contract.proposalSeqno()).toEqual(1);
+}
+
+get fun `test create proposal rejects invalid amount and expiry`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+
+    val zeroAmount = contract.sendCreatePayoutProposal(
+        ownerA.address,
+        outsider.address,
+        0,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: ton("0.05") },
+    );
+    expect(zeroAmount).toHaveFailedTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidAmount,
+    });
+
+    val expired = contract.sendCreatePayoutProposal(
+        ownerA.address,
+        outsider.address,
+        ton("0.20"),
+        blockchain.now(),
+        { value: ton("0.05") },
+    );
+    expect(expired).toHaveFailedTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidExpiry,
+    });
+}
+
 fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
     val ownerA = testTreasury("ownerA");
     val ownerB = testTreasury("ownerB");
