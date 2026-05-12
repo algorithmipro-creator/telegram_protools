@@ -133,6 +133,7 @@ fun testTreasury(name: string): TestTreasury {
     return TestTreasury { address };
 }
 
+// SAFETY: Embeds fixed Acton test treasury code for deterministic local test accounts.
 fun testTreasuryCode(): cell asm """
     "te6cckEBBAEARQABFP8A9KQT9LzyyAsBAgEgAwIAWvLT/+1E0NP/0RK68qL0BNH4AH+OFiGAEPR4b6UgmALTB9QwAfsAkTLiAbPmWwAE0jD+omUe" base64>B B>boc PUSHREF
 """

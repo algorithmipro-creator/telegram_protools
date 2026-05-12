@@ -13,25 +13,25 @@ fun onInternalMessage(in: InMessage) {
 
     match (msg) {
         CreatePayoutProposal => {
-            var storage = lazy Storage.load();
+            val storage = lazy Storage.load();
             storage.assertValidConfig();
             assert (storage.isOwner(in.senderAddress)) throw Errors.NotOwner;
             throw Errors.InvalidMessage;
         }
         ApproveProposal => {
-            var storage = lazy Storage.load();
+            val storage = lazy Storage.load();
             storage.assertValidConfig();
             assert (storage.isOwner(in.senderAddress)) throw Errors.NotOwner;
             throw Errors.ProposalNotFound;
         }
         ExecuteProposal => {
-            var storage = lazy Storage.load();
+            val storage = lazy Storage.load();
             storage.assertValidConfig();
             assert (storage.isOwner(in.senderAddress)) throw Errors.NotOwner;
             throw Errors.ProposalNotFound;
         }
         CancelProposal => {
-            var storage = lazy Storage.load();
+            val storage = lazy Storage.load();
             storage.assertValidConfig();
             assert (storage.isOwner(in.senderAddress)) throw Errors.NotOwner;
             throw Errors.ProposalNotFound;
