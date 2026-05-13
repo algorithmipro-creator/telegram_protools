@@ -29,6 +29,15 @@ Each tester should attempt this scenario:
 10. Approve and execute split distribution.
 11. Submit feedback.
 
+## Current Progress
+
+- Track A custom Tolk Treasury is deployed on TON testnet.
+- Internal script-driven payout flow is complete: create proposal, second-owner approve, execute payout.
+- Recipient received `0.05 TON` on testnet.
+- Evidence is recorded in `docs/research/track-a-testnet-deployment.md`.
+- The Mini App, backend/indexer, Splitter, Jettons, and user-facing beta flow are not implemented yet.
+- Mainnet remains blocked until source verification, security review/audit readiness, and release checklist completion.
+
 ## Metrics
 
 | Metric | Meaning |
@@ -52,3 +61,10 @@ Each tester should attempt this scenario:
 | Open beta | Source verification dry-run, public test instructions, known failure handling |
 | Architecture decision | Scorecard completed for Track A and Track B |
 | Mainnet candidate | Audit/review, threat model, migration/deprecation plan |
+
+## Next Beta Readiness Tasks
+
+- Complete Track A source verification or verification dry-run on testnet.
+- Add a security review checklist for the custom Treasury logic.
+- Decide whether to run Track B official multisig v2 for a comparable scorecard baseline.
+- Start the user-facing beta surface only after contract verification and review tasks are clear.

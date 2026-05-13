@@ -6,14 +6,14 @@ Compare Track A custom Tolk and Track B official multisig v2 based architecture 
 
 ## Weighted Score
 
-| Criterion | Weight | Track A Score 1-5 | Track B Score 1-5 | Evidence Required |
+| Criterion | Weight | Track A Score 1-5 | Track B Score 1-5 | Evidence |
 |---|---:|---:|---:|---|
-| Security / auditability | 30 | 0 | 0 | invariant coverage, code complexity, reviewed base, audit readiness |
-| User UX clarity | 20 | 0 | 0 | completion rate, confusion points, trust score |
-| Development complexity | 15 | 0 | 0 | implementation effort, wrapper friction, debugging effort |
-| Gas/fees | 15 | 0 | 0 | Acton gas snapshots and fee observations |
-| Acton workflow compatibility | 10 | 0 | 0 | build/test/wrapper/deploy/verify smoothness |
-| Extensibility for splits/Jettons | 10 | 0 | 0 | split fit, Jetton path, adapter complexity |
+| Security / auditability | 30 | 3 | 0 | Track A has 20 deterministic tests and testnet create/approve/execute evidence, but still needs source verification and security review before mainnet. |
+| User UX clarity | 20 | 2 | 0 | Contract flow works through scripts; no Mini App or user-facing signing flow has been tested yet. |
+| Development complexity | 15 | 4 | 0 | Custom Tolk Treasury, wrappers, deploy script, and testnet scripts are implemented; TypeScript wrapper friction was resolved. |
+| Gas/fees | 15 | 3 | 0 | Real testnet balances and fees were observed, but no formal gas snapshot baseline has been recorded yet. |
+| Acton workflow compatibility | 10 | 4 | 0 | Acton build/test/check/fmt, wrapper generation, deployment, RPC decode, and testnet scripts work on Ubuntu. Windows/WSL networking remains environmental friction. |
+| Extensibility for splits/Jettons | 10 | 2 | 0 | Track A payout core is isolated; Splitter and Jettons are intentionally out of scope and not validated. |
 
 ## Score Rules
 
@@ -27,3 +27,20 @@ Compare Track A custom Tolk and Track B official multisig v2 based architecture 
 - Choose Track A only if security review supports custom multisig logic.
 - Choose Track B if official multisig gives stronger safety without unacceptable UX constraints.
 - Choose hybrid if official multisig handles authorization while custom contracts handle product-specific split and metadata flows.
+
+## Track A Evidence Snapshot
+
+- Deployed Treasury on testnet: `kQAEswTqc4bDarhACzMsgMhOXOgYcYHaXLLnwwOnMepqhSnA`.
+- Deployment transaction: https://testnet.tonviewer.com/transaction/527e66692a2fb3226025b5b6dbb96834e82c102c129a2a682d96d16a3cb70c7f
+- Manual flow completed on testnet: create proposal, second-owner approve, execute payout.
+- Manual flow transactions:
+  - Create: https://testnet.tonviewer.com/transaction/869e952d66ea95e64f8535b3a7d7ce030bcbc3c1e6e419e7682706d68156efd9
+  - Approve: https://testnet.tonviewer.com/transaction/ead1526f089ee7c2689d003b8d07f84e0d948b75b41021bee2937fd51858d6b2
+  - Execute: https://testnet.tonviewer.com/transaction/ba43948018c3621993005c5476bea0f0ecd66e051317fce6975876bd23a850e8
+- Recipient received `0.05 TON` on testnet.
+- Final decoded proposal state: proposal `0`, approval count `2`, status `Executed`.
+- Full evidence: `docs/research/track-a-testnet-deployment.md`.
+
+## Current Decision
+
+Track A is validated enough to continue hardening and beta preparation on testnet. Mainnet remains blocked until source verification, security review/audit readiness, and a release checklist are complete. Track B remains unscored until official multisig v2 is tested with comparable evidence.
