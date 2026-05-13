@@ -16,9 +16,14 @@ fun main() {
         "proposal",
         [BASELINE_PROPOSAL_ID],
     );
-    if (beforeProposal.status != ProposalViewStatus.Executable || beforeProposal.approvalCount != 2) {
+    if (
+        beforeProposal.status != ProposalViewStatus.Executable || beforeProposal.approvalCount != 2
+    ) {
         println("GAS_BASELINE_ACTION=execute");
-        println("GAS_BASELINE_ERROR=Proposal {} is not executable with two approvals", BASELINE_PROPOSAL_ID);
+        println(
+            "GAS_BASELINE_ERROR=Proposal {} is not executable with two approvals",
+            BASELINE_PROPOSAL_ID,
+        );
         println("PROPOSAL_STATUS={}", beforeProposal.status);
         println("APPROVAL_COUNT={}", beforeProposal.approvalCount);
         return;

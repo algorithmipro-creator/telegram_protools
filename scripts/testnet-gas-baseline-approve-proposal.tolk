@@ -18,7 +18,10 @@ fun main() {
     );
     if (beforeProposal.status != ProposalViewStatus.Pending || beforeProposal.approvalCount != 1) {
         println("GAS_BASELINE_ACTION=approve");
-        println("GAS_BASELINE_ERROR=Proposal {} is not pending with one approval", BASELINE_PROPOSAL_ID);
+        println(
+            "GAS_BASELINE_ERROR=Proposal {} is not pending with one approval",
+            BASELINE_PROPOSAL_ID,
+        );
         println("PROPOSAL_STATUS={}", beforeProposal.status);
         println("APPROVAL_COUNT={}", beforeProposal.approvalCount);
         return;
