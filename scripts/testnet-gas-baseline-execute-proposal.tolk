@@ -24,7 +24,11 @@ fun main() {
         return;
     }
 
-    val proposal: ProposalView = net.runGetMethod(TREASURY_ADDRESS, "proposal", [BASELINE_PROPOSAL_ID]);
+    val proposal: ProposalView = net.runGetMethod(
+        TREASURY_ADDRESS,
+        "proposal",
+        [BASELINE_PROPOSAL_ID],
+    );
     println("GAS_BASELINE_ACTION=execute");
     println("TREASURY_ADDRESS={}", TREASURY_ADDRESS);
     println("OWNER_ADDRESS={}", ownerA.address);
