@@ -35,6 +35,8 @@ Each tester should attempt this scenario:
 - Internal script-driven payout flow is complete: create proposal, second-owner approve, execute payout.
 - Recipient received `0.05 TON` on testnet.
 - Evidence is recorded in `docs/research/track-a-testnet-deployment.md`.
+- Source verification dry-run is complete and recorded in `docs/research/track-a-source-verification.md`; no verifier transaction was sent.
+- Security review checklist is recorded in `docs/research/track-a-security-checklist.md`.
 - The Mini App, backend/indexer, Splitter, Jettons, and user-facing beta flow are not implemented yet.
 - Mainnet remains blocked until source verification, security review/audit readiness, and release checklist completion.
 
@@ -58,13 +60,13 @@ Each tester should attempt this scenario:
 |---|---|
 | Internal testnet | Contracts build/test, UI completes one payout |
 | Known teams beta | Payout and splits work, feedback form active, no critical security gap |
-| Open beta | Source verification dry-run, public test instructions, known failure handling |
+| Open beta | Source verification dry-run, public test instructions, known failure handling, and no public claim that source verification is complete until the verifier transaction is confirmed |
 | Architecture decision | Scorecard completed for Track A and Track B |
 | Mainnet candidate | Audit/review, threat model, migration/deprecation plan |
 
 ## Next Beta Readiness Tasks
 
-- Complete Track A source verification or verification dry-run on testnet.
-- Add a security review checklist for the custom Treasury logic.
+- Send the Track A source verification transaction only after explicit approval; until then, describe the status as dry-run evidence only.
+- Review and resolve the Track A security checklist before beta expansion.
 - Decide whether to run Track B official multisig v2 for a comparable scorecard baseline.
 - Start the user-facing beta surface only after contract verification and review tasks are clear.

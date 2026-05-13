@@ -6,6 +6,12 @@ TreasuryFlow handles team funds. Every payout, split distribution, and configura
 
 The first beta is testnet only. Mainnet is blocked until architecture selection, security review, and release checklist approval.
 
+Track A hardening evidence:
+
+- Testnet deployment and manual payout flow: `docs/research/track-a-testnet-deployment.md`.
+- Source verification dry-run: `docs/research/track-a-source-verification.md`.
+- Security review readiness checklist: `docs/research/track-a-security-checklist.md`.
+
 ## Assets To Protect
 
 - Treasury TON balance.
@@ -57,5 +63,6 @@ Mainnet is forbidden until all of these are complete:
 - Critical unit and fuzz tests pass.
 - Gas and fee implications are understood.
 - Source verification workflow is confirmed.
+- Security checklist is reviewed and all critical findings are resolved.
 - External review or audit is completed.
 - Mainnet release checklist is approved.
