@@ -6,8 +6,8 @@ import "@acton/emulation/scripts"
 import "@contracts/types"
 
 fun main() {
-    val ownerA = scripts.wallet("ownerA");
-    val ownerB = scripts.wallet("ownerB");
+    val ownerA = scripts.wallet("ownera");
+    val ownerB = scripts.wallet("ownerb");
 
     var owners: map<address, uint8> = [];
     owners.set(ownerA.address, OWNER_KEY_VALUE);
