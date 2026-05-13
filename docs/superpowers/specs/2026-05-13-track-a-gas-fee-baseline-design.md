@@ -46,7 +46,7 @@ Use nanotons for exact arithmetic and TON values only as human-readable annotati
 
 The existing scripts are fixed to proposal `0` and were useful for the first manual flow. For this baseline, add dedicated testnet scripts instead of editing the old evidence scripts in place. This keeps the original manual-flow reproduction stable and makes the gas baseline explicit.
 
-The new scripts should hard-code only public testnet addresses, public proposal constants, payout amount, and attached values. They should print machine-readable labels for transaction hash, proposal ID, proposal status, approval count, and relevant balances so the evidence can be copied into the research doc without parsing secrets.
+The new scripts should hard-code only public testnet addresses, public proposal constants, payout amount, and attached values. They should print machine-readable labels for proposal ID, proposal status, approval count, payout amount, and attached message values. Acton prints the transaction URL during broadcast, and balance evidence is captured separately with `acton rpc info` before and after each action.
 
 Expected scripts:
 
@@ -106,7 +106,7 @@ Local Windows `acton` is not expected to work unless the toolchain has changed.
 ## Success Criteria
 
 - A fresh proposal is created, approved, and executed on TON testnet.
-- The recipient receives the expected testnet payout.
+- The recipient balance increase is recorded from observed testnet balances and compared against the nominal payout amount.
 - Transaction hashes and explorer URLs are recorded for create, approve, and execute.
 - Balance snapshots allow observed wallet-side costs to be calculated.
 - `docs/research/track-a-gas-fee-baseline.md` records the baseline without secrets.

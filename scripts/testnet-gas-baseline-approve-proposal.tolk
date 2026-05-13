@@ -11,6 +11,19 @@ const BASELINE_MESSAGE_VALUE: coins = ton("0.05")
 fun main() {
     val ownerB = scripts.wallet("ownerb");
 
+    val beforeProposal: ProposalView = net.runGetMethod(
+        TREASURY_ADDRESS,
+        "proposal",
+        [BASELINE_PROPOSAL_ID],
+    );
+    if (beforeProposal.status != ProposalViewStatus.Pending || beforeProposal.approvalCount != 1) {
+        println("GAS_BASELINE_ACTION=approve");
+        println("GAS_BASELINE_ERROR=Proposal {} is not pending with one approval", BASELINE_PROPOSAL_ID);
+        println("PROPOSAL_STATUS={}", beforeProposal.status);
+        println("APPROVAL_COUNT={}", beforeProposal.approvalCount);
+        return;
+    }
+
     val approveProposalMessage = createMessage({
         bounce: true,
         value: BASELINE_MESSAGE_VALUE,

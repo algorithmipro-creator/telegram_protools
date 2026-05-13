@@ -11,6 +11,19 @@ const BASELINE_MESSAGE_VALUE: coins = ton("0.05")
 fun main() {
     val ownerA = scripts.wallet("ownera");
 
+    val beforeProposal: ProposalView = net.runGetMethod(
+        TREASURY_ADDRESS,
+        "proposal",
+        [BASELINE_PROPOSAL_ID],
+    );
+    if (beforeProposal.status != ProposalViewStatus.Executable || beforeProposal.approvalCount != 2) {
+        println("GAS_BASELINE_ACTION=execute");
+        println("GAS_BASELINE_ERROR=Proposal {} is not executable with two approvals", BASELINE_PROPOSAL_ID);
+        println("PROPOSAL_STATUS={}", beforeProposal.status);
+        println("APPROVAL_COUNT={}", beforeProposal.approvalCount);
+        return;
+    }
+
     val executeProposalMessage = createMessage({
         bounce: true,
         value: BASELINE_MESSAGE_VALUE,

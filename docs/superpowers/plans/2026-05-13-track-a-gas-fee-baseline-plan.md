@@ -316,7 +316,7 @@ Run the same balance command from Task 3 Step 1, then run Treasury info once mor
 ssh tondev@88.218.123.55 'cd /home/tondev/work/telegram_protools && /home/tondev/.acton/bin/acton rpc info --net testnet kQAEswTqc4bDarhACzMsgMhOXOgYcYHaXLLnwwOnMepqhSnA'
 ```
 
-Expected: recipient balance increased by `0.02 TON`, Treasury proposal `1` exists, proposal `1` has approval count `2`, and proposal `1` status is executed.
+Expected: recipient balance increased according to observed testnet balances, Treasury proposal `1` exists, proposal `1` has approval count `2`, and proposal `1` status is executed. Compare the observed recipient delta against the nominal `0.02 TON` payout instead of assuming they are exactly equal.
 
 - [ ] **Step 8: Create the gas/fee evidence document**
 

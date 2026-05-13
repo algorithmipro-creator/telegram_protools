@@ -14,6 +14,13 @@ fun main() {
     val recipient = scripts.wallet("recipient");
     val expiresAt = blockchain.now() + DEFAULT_EXPIRY_SECONDS;
 
+    val proposalSeqno: uint64 = net.runGetMethod(TREASURY_ADDRESS, "proposal_seqno");
+    if (proposalSeqno != BASELINE_PROPOSAL_ID) {
+        println("GAS_BASELINE_ACTION=create");
+        println("GAS_BASELINE_ERROR=Expected proposal_seqno {} before create, got {}", BASELINE_PROPOSAL_ID, proposalSeqno);
+        return;
+    }
+
     val createProposalMessage = createMessage({
         bounce: true,
         value: BASELINE_MESSAGE_VALUE,
