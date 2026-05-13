@@ -8,7 +8,7 @@ Compare Track A custom Tolk and Track B official multisig v2 based architecture 
 
 | Criterion | Weight | Track A Score 1-5 | Track B Score 1-5 | Evidence |
 |---|---:|---:|---:|---|
-| Security / auditability | 30 | 3 | 0 | Track A has 20 deterministic tests and testnet create/approve/execute evidence, but still needs source verification and security review before mainnet. |
+| Security / auditability | 30 | 3 | 0 | Track A has 20 deterministic tests, testnet create/approve/execute evidence, source verification dry-run evidence, and a security checklist; final source verification transaction and security review are still required before mainnet. |
 | User UX clarity | 20 | 2 | 0 | Contract flow works through scripts; no Mini App or user-facing signing flow has been tested yet. |
 | Development complexity | 15 | 4 | 0 | Custom Tolk Treasury, wrappers, deploy script, and testnet scripts are implemented; TypeScript wrapper friction was resolved. |
 | Gas/fees | 15 | 3 | 0 | Real testnet balances and fees were observed, but no formal gas snapshot baseline has been recorded yet. |
@@ -40,7 +40,9 @@ Compare Track A custom Tolk and Track B official multisig v2 based architecture 
 - Recipient received `0.05 TON` on testnet.
 - Final decoded proposal state: proposal `0`, approval count `2`, status `Executed`.
 - Full evidence: `docs/research/track-a-testnet-deployment.md`.
+- Source verification dry-run completed with verifier backend acceptance: `docs/research/track-a-source-verification.md`.
+- Security review checklist: `docs/research/track-a-security-checklist.md`.
 
 ## Current Decision
 
-Track A is validated enough to continue hardening and beta preparation on testnet. Mainnet remains blocked until source verification, security review/audit readiness, and a release checklist are complete. Track B remains unscored until official multisig v2 is tested with comparable evidence.
+Track A is validated enough to continue hardening and beta preparation on testnet. Mainnet remains blocked until the final source verification transaction, security review/audit readiness, and a release checklist are complete. Track B remains unscored until official multisig v2 is tested with comparable evidence.
