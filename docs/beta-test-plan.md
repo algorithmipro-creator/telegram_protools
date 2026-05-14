@@ -39,7 +39,7 @@ Each tester should attempt this scenario:
 - Security review checklist is recorded in `docs/research/track-a-security-checklist.md`.
 - Storage reserve policy is recorded in `docs/research/track-a-storage-reserve-policy.md`; mainnet reserve sizing still requires measured max-state tests.
 - The Mini App, backend/indexer, Splitter, Jettons, and user-facing beta flow are not implemented yet.
-- Mainnet remains blocked until source verification, security review/audit readiness, and release checklist completion.
+- Mainnet remains blocked until source verification, measured storage reserve sizing, bounded history or cleanup/indexer policy, security review/audit readiness, and release checklist completion.
 
 ## Metrics
 
