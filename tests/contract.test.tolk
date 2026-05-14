@@ -498,10 +498,10 @@ fun measureTreasuryStorage(contract: Treasury, proposalCount: int): StorageMeasu
 
 fun testTreasuryDataCell(addr: address): cell {
     val shard = testGetShardAccount(addr)!;
-    var account = shard.account.load();
+    val account = shard.account.load();
     match (account) {
         TlbAccountInfo => {
-            var state = account.storage.state;
+            val state = account.storage.state;
             match (state) {
                 TlbAccountStateActive => {
                     return state.stateInit.data!;
