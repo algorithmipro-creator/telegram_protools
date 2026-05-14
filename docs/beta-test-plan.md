@@ -37,7 +37,7 @@ Each tester should attempt this scenario:
 - Evidence is recorded in `docs/research/track-a-testnet-deployment.md`.
 - Source verification dry-run is complete and recorded in `docs/research/track-a-source-verification.md`; no verifier transaction was sent.
 - Security review checklist is recorded in `docs/research/track-a-security-checklist.md`.
-- Storage reserve policy is recorded in `docs/research/track-a-storage-reserve-policy.md`; mainnet reserve sizing still requires measured max-state tests.
+- Storage reserve policy is recorded in `docs/research/track-a-storage-reserve-policy.md`; bounded sandbox fixtures are measured, but mainnet reserve sizing still requires retention policy approval and current network config.
 - The Mini App, backend/indexer, Splitter, Jettons, and user-facing beta flow are not implemented yet.
 - Mainnet remains blocked until source verification, measured storage reserve sizing, bounded history or cleanup/indexer policy, security review/audit readiness, and release checklist completion.
 
@@ -69,6 +69,6 @@ Each tester should attempt this scenario:
 
 - Send the Track A source verification transaction only after explicit approval; until then, describe the status as dry-run evidence only.
 - Review and resolve the Track A security checklist before beta expansion.
-- Measure max-state storage size and decide bounded on-chain history versus cleanup/indexer strategy before mainnet candidate work.
+- Decide bounded on-chain history versus cleanup/indexer strategy and regenerate final storage reserve sizing before mainnet candidate work.
 - Decide whether to run Track B official multisig v2 for a comparable scorecard baseline.
 - Start the user-facing beta surface only after contract verification and review tasks are clear.

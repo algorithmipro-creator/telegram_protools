@@ -335,7 +335,7 @@ Use this exact column structure:
 |---|---|---:|---:|---:|---:|---|
 ```
 
-For sandbox rows, use the exact `cells`, `bits`, and fee values printed by `printStorageMeasurement`. Fee values should remain in nanotons unless you also calculate TON strings carefully in docs. If you include TON strings, keep the nanotons too.
+For sandbox rows, use the exact measured `cells`, `bits`, and `refs` printed by `printStorageMeasurement`. Recompute policy fee estimates from those measured sizes with mainnet basechain storage parameters; do not copy raw sandbox-config fee output into the policy table. Fee values should remain in nanotons unless you also calculate TON strings carefully in docs. If you include TON strings, keep the nanotons too.
 
 - [ ] **Step 3: Update interpretation text**
 

@@ -18,7 +18,7 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 | Cancel constraints | Covered by tests, needs external review | Confirm only intended owner/creator authority can cancel and that cancellation is terminal. |
 | Execute once | Covered by tests, needs external review | Unit tests and testnet flow show proposal `0` reaches `Executed`; review terminal-state enforcement. |
 | Reserve accounting | Covered by tests, needs external review | Confirm `feeReserve` prevents draining below reserve across edge-case amounts and message values. |
-| Storage reserve sizing | Policy recorded, needs measured max-state tests | See `docs/research/track-a-storage-reserve-policy.md`; regenerate estimates before mainnet. |
+| Storage reserve sizing | Bounded fixtures measured, needs mainnet retention decision | See `docs/research/track-a-storage-reserve-policy.md`; regenerate estimates from current network config before mainnet. |
 | Proposal history retention | Needs design before mainnet scale | Unbounded on-chain proposal/approval history is not acceptable for mainnet scale. |
 | Replay and double execution | Covered by tests, needs external review | Confirm proposal IDs, status transitions, and approval keys prevent replay after terminal states. |
 | External message value assumptions | Needs review | Confirm minimum inbound value assumptions for create, approve, cancel, and execute messages. |
@@ -64,6 +64,6 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 - Decide Track A versus Track B with comparable evidence.
 - Send source verification transaction only after explicit approval.
 - Review recorded Track A gas/fee baseline and add rejection-path fee evidence before mainnet.
-- Measure max-state storage size and approve bounded history or cleanup/indexer strategy before mainnet.
+- Approve bounded history or cleanup/indexer strategy and regenerate storage sizing before mainnet.
 - Define operational recovery playbook for stuck proposals, expired proposals, and wallet/key loss.
 - Approve mainnet release checklist.
