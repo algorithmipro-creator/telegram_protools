@@ -1,10 +1,10 @@
-import "@acton/ffi"
-import "@acton/emulation/network"
-import "@acton/io"
-import "@acton/testing/expect"
-import "@acton/types/transaction"
 import "@stdlib/gas-payments"
 
+import "@acton/ffi"
+import "@acton/io"
+import "@acton/emulation/network"
+import "@acton/testing/expect"
+import "@acton/types/transaction"
 import "@contracts/types"
 import "@wrappers/Treasury.gen"
 
@@ -429,7 +429,12 @@ fun measureStorageScenario(proposalCount: int): StorageMeasurement {
     return measureTreasuryStorage(contract, proposalCount);
 }
 
-fun setupStorageSizingTreasury(proposalCount: int): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
+fun setupStorageSizingTreasury(proposalCount: int): (
+    Treasury,
+    TestTreasury,
+    TestTreasury,
+    TestTreasury,
+) {
     if (proposalCount == 0) {
         return setupTreasuryWithOwners("storageOwnerA0", "storageOwnerB0", "storageRecipient0");
     }
@@ -437,10 +442,18 @@ fun setupStorageSizingTreasury(proposalCount: int): (Treasury, TestTreasury, Tes
         return setupTreasuryWithOwners("storageOwnerA10", "storageOwnerB10", "storageRecipient10");
     }
     if (proposalCount == 100) {
-        return setupTreasuryWithOwners("storageOwnerA100", "storageOwnerB100", "storageRecipient100");
+        return setupTreasuryWithOwners(
+            "storageOwnerA100",
+            "storageOwnerB100",
+            "storageRecipient100",
+        );
     }
     if (proposalCount == 1000) {
-        return setupTreasuryWithOwners("storageOwnerA1000", "storageOwnerB1000", "storageRecipient1000");
+        return setupTreasuryWithOwners(
+            "storageOwnerA1000",
+            "storageOwnerB1000",
+            "storageRecipient1000",
+        );
     }
     throw 997;
 }
