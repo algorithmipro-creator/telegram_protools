@@ -11,7 +11,7 @@ Compare Track A custom Tolk and Track B official multisig v2 based architecture 
 | Security / auditability | 30 | 3 | 0 | Track A has 20 deterministic tests, testnet create/approve/execute evidence, source verification dry-run evidence, and a security checklist; final source verification transaction and security review are still required before mainnet. |
 | User UX clarity | 20 | 2 | 0 | Contract flow works through scripts; no Mini App or user-facing signing flow has been tested yet. |
 | Development complexity | 15 | 4 | 0 | Custom Tolk Treasury, wrappers, deploy script, and testnet scripts are implemented; TypeScript wrapper friction was resolved. |
-| Gas/fees | 15 | 3 | 0 | Real testnet balances, transaction links, and observed wallet-side costs are recorded for Track A create/approve/execute; no mainnet fee guarantee exists yet. |
+| Gas/fees | 15 | 3 | 0 | Real testnet action costs and storage reserve policy are recorded for Track A; mainnet still needs measured max-state storage tests and retention policy approval. |
 | Acton workflow compatibility | 10 | 4 | 0 | Acton build/test/check/fmt, wrapper generation, deployment, RPC decode, and testnet scripts work on Ubuntu. Windows/WSL networking remains environmental friction. |
 | Extensibility for splits/Jettons | 10 | 2 | 0 | Track A payout core is isolated; Splitter and Jettons are intentionally out of scope and not validated. |
 
@@ -42,8 +42,9 @@ Compare Track A custom Tolk and Track B official multisig v2 based architecture 
 - Full evidence: `docs/research/track-a-testnet-deployment.md`.
 - Source verification dry-run completed with verifier backend acceptance: `docs/research/track-a-source-verification.md`.
 - Gas/fee baseline for create, approve, and execute: `docs/research/track-a-gas-fee-baseline.md`.
+- Storage reserve policy and unbounded-history caveat: `docs/research/track-a-storage-reserve-policy.md`.
 - Security review checklist: `docs/research/track-a-security-checklist.md`.
 
 ## Current Decision
 
-Track A is validated enough to continue hardening and beta preparation on testnet. Mainnet remains blocked until the final source verification transaction, security review/audit readiness, and a release checklist are complete. Track B remains unscored until official multisig v2 is tested with comparable evidence.
+Track A is validated enough to continue hardening and beta preparation on testnet. Mainnet remains blocked until the final source verification transaction, measured max-state storage reserve sizing, bounded history or cleanup/indexer policy, security review/audit readiness, and a release checklist are complete. Track B remains unscored until official multisig v2 is tested with comparable evidence.

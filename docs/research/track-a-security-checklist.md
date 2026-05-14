@@ -18,6 +18,8 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 | Cancel constraints | Covered by tests, needs external review | Confirm only intended owner/creator authority can cancel and that cancellation is terminal. |
 | Execute once | Covered by tests, needs external review | Unit tests and testnet flow show proposal `0` reaches `Executed`; review terminal-state enforcement. |
 | Reserve accounting | Covered by tests, needs external review | Confirm `feeReserve` prevents draining below reserve across edge-case amounts and message values. |
+| Storage reserve sizing | Policy recorded, needs measured max-state tests | See `docs/research/track-a-storage-reserve-policy.md`; regenerate estimates before mainnet. |
+| Proposal history retention | Needs design before mainnet scale | Unbounded on-chain proposal/approval history is not acceptable for mainnet scale. |
 | Replay and double execution | Covered by tests, needs external review | Confirm proposal IDs, status transitions, and approval keys prevent replay after terminal states. |
 | External message value assumptions | Needs review | Confirm minimum inbound value assumptions for create, approve, cancel, and execute messages. |
 | Getter and storage visibility | Needs review | Confirm public getters expose enough review data without leaking sensitive operational data. |
@@ -37,6 +39,8 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 | Cancellation semantics | Cancellation cannot bypass threshold execution rules or revive a proposal. |
 | Execution atomicity | A payout cannot be marked executed unless the execution path is intended to be final. |
 | Reserve invariant | Execution cannot reduce balance below `feeReserve` except for expected gas effects. |
+| Storage reserve policy | `feeReserve` is sized from measured max-state storage and target reserve lifetime. |
+| History retention policy | Terminal proposal history is bounded on-chain or backed by a reproducible off-chain indexer. |
 | Replay protection | Reusing old proposal/action data cannot mutate terminal proposal state. |
 | Message value assumptions | Required inbound values are documented and enforced or intentionally delegated to operational scripts. |
 | Getter completeness | Reviewers can inspect owner count, threshold, proposals, approvals, and reserve state. |
@@ -51,6 +55,7 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 - Proposal `0` final status: `Executed`.
 - Recipient received `0.05 TON` on testnet.
 - Gas/fee baseline recorded for proposal `1` create, approve, and execute: `docs/research/track-a-gas-fee-baseline.md`.
+- Storage reserve policy and mainnet retention caveats: `docs/research/track-a-storage-reserve-policy.md`.
 - Source verification dry-run: verifier backend accepted 2 source files and prepared the verification transaction body, which is not recorded in the repository.
 
 ## Mainnet Blockers
@@ -59,5 +64,6 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 - Decide Track A versus Track B with comparable evidence.
 - Send source verification transaction only after explicit approval.
 - Review recorded Track A gas/fee baseline and add rejection-path fee evidence before mainnet.
+- Measure max-state storage size and approve bounded history or cleanup/indexer strategy before mainnet.
 - Define operational recovery playbook for stuck proposals, expired proposals, and wallet/key loss.
 - Approve mainnet release checklist.
