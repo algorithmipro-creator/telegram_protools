@@ -50,6 +50,7 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 - Testnet manual flow: create proposal, second-owner approve, execute payout.
 - Proposal `0` final status: `Executed`.
 - Recipient received `0.05 TON` on testnet.
+- Gas/fee baseline recorded for proposal `1` create, approve, and execute: `docs/research/track-a-gas-fee-baseline.md`.
 - Source verification dry-run: verifier backend accepted 2 source files and prepared the verification transaction body, which is not recorded in the repository.
 
 ## Mainnet Blockers
@@ -57,6 +58,6 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 - Complete security review or external audit of custom multisig logic.
 - Decide Track A versus Track B with comparable evidence.
 - Send source verification transaction only after explicit approval.
-- Record gas and fee baseline for normal and rejection paths.
+- Review recorded Track A gas/fee baseline and add rejection-path fee evidence before mainnet.
 - Define operational recovery playbook for stuck proposals, expired proposals, and wallet/key loss.
 - Approve mainnet release checklist.

@@ -10,6 +10,7 @@ Track A hardening evidence:
 
 - Testnet deployment and manual payout flow: `docs/research/track-a-testnet-deployment.md`.
 - Source verification dry-run: `docs/research/track-a-source-verification.md`.
+- Gas/fee baseline: `docs/research/track-a-gas-fee-baseline.md`.
 - Security review readiness checklist: `docs/research/track-a-security-checklist.md`.
 
 ## Assets To Protect
