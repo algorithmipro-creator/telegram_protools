@@ -429,6 +429,9 @@ fun setupStorageSizingTreasury(proposalCount: int): (Treasury, TestTreasury, Tes
     if (proposalCount == 100) {
         return setupTreasuryWithOwners("storageOwnerA100", "storageOwnerB100", "storageRecipient100");
     }
+    if (proposalCount == 1000) {
+        return setupTreasuryWithOwners("storageOwnerA1000", "storageOwnerB1000", "storageRecipient1000");
+    }
     throw 997;
 }
 
