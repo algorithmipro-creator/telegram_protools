@@ -118,6 +118,16 @@ get fun `test storage size measurements are generated for bounded proposal count
     expect(hundred.bits > ten.bits).toBeTrue();
 }
 
+get fun `test storage size measurement optional thousand proposal probe`() {
+    val thousand = measureStorageScenario(1000);
+    printStorageMeasurement(thousand);
+
+    expect(thousand.proposalCount).toEqual(1000);
+    expect(thousand.cells).toEqual(5002);
+    expect(thousand.bits).toEqual(976248);
+    expect(thousand.refs).toEqual(5001);
+}
+
 get fun `test owner creates payout proposal with creator auto approval`() {
     val (contract, ownerA, _, outsider) = setupTreasury();
     val expiresAt = blockchain.now() + DEFAULT_EXPIRY_SECONDS;
