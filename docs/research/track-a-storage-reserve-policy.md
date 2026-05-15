@@ -4,30 +4,35 @@
 
 Define how Track A treats TON storage fees, reserve sizing, and proposal history retention before any mainnet candidate work continues.
 
-This document is policy evidence, not an audit report. The estimates are based on current mainnet basechain storage parameters and an approximate state-size model from the deployed testnet Treasury after proposal `1`.
+This document is policy evidence, not an audit report. The estimates are based on current mainnet basechain storage parameters, live-chain observation, and deterministic Acton sandbox fixtures.
 
 ## Current Evidence
 
 - Track A Treasury testnet address: `kQAEswTqc4bDarhACzMsgMhOXOgYcYHaXLLnwwOnMepqhSnA`.
-- Current observed deployed state after proposal `1`: `45 cells`, `11094 bits`.
+- Current observed deployed testnet state after proposal `1`: `45 cells`, `11094 bits`; this remains live-chain evidence, not the deterministic sizing fixture.
+- Deterministic Acton sandbox fixtures now measure retained proposal scenarios for `0`, `10`, `100`, and `1000` proposals through contract messages.
 - Current MVP `feeReserve`: `0.1 TON`.
-- Mainnet basechain storage parameters used for this estimate: `bit_price_ps = 1`, `cell_price_ps = 500`, `freeze_due_limit = 0.1 TON`, `delete_due_limit = 1 TON`.
+- Mainnet basechain storage parameters used for the policy estimate: `bit_price_ps = 1`, `cell_price_ps = 500`, `freeze_due_limit = 0.1 TON`, `delete_due_limit = 1 TON`.
 
 ## Storage Fee Estimates
 
-| Scenario | Estimated State Size | 1 Year | 5 Years | 10 Years | Approx Freeze Time With Zero Balance |
-|---|---:|---:|---:|---:|---:|
-| Current state | `45 cells`, `11094 bits` | `0.016165473 TON` | `0.080827361 TON` | `0.161654722 TON` | `~6.18 years` |
-| 10 proposals | `109 cells`, `23982 bits` | `0.037765631 TON` | `0.188828152 TON` | `0.377656304 TON` | `~2.65 years` |
-| 100 proposals | `829 cells`, `168972 bits` | `0.280767411 TON` | `1.403837051 TON` | `2.807674102 TON` | `~130 days` |
-| 1000 proposals | `8029 cells`, `1618872 bits` | `2.710785209 TON` | `13.553926041 TON` | `27.107852081 TON` | `~13 days` |
+Sandbox fixture rows use measured cells/bits/refs from Acton tests. Fee columns are policy estimates recomputed from those measured sizes with the mainnet basechain parameters above, not raw sandbox-config fee output.
+
+| Scenario | Source | State Size | 1 Year | 5 Years | 10 Years | Notes |
+|---|---|---:|---:|---:|---:|---|
+| Observed testnet after proposal `1` | Live-chain observed / prior policy estimate | `45 cells`, `11094 bits` | `16165473 nanotons` (`0.016165473 TON`) | `80827361 nanotons` (`0.080827361 TON`) | `161654722 nanotons` (`0.161654722 TON`) | Live-chain evidence; not the deterministic sizing fixture. |
+| Sandbox `0` proposals | Deterministic Acton sandbox fixture | `4 cells`, `687 bits`, `3 refs` | `1292988 nanotons` (`0.001292988 TON`) | `6464938 nanotons` (`0.006464938 TON`) | `12929876 nanotons` (`0.012929876 TON`) | Baseline deployed state with no retained proposals. |
+| Sandbox `10` proposals | Deterministic Acton sandbox fixture | `52 cells`, `10512 bits`, `51 refs` | `17569618 nanotons` (`0.017569618 TON`) | `87848086 nanotons` (`0.087848086 TON`) | `175696172 nanotons` (`0.175696172 TON`) | Small retained-history fixture. |
+| Sandbox `100` proposals | Deterministic Acton sandbox fixture | `502 cells`, `98569 bits`, `501 refs` | `168213013 nanotons` (`0.168213013 TON`) | `841065063 nanotons` (`0.841065063 TON`) | `1682130125 nanotons` (`1.682130125 TON`) | Current bounded-history sizing input. |
+| Sandbox `1000` proposals | Deterministic Acton sandbox fixture | `5002 cells`, `976248 bits`, `5001 refs` | `1673255813 nanotons` (`1.673255813 TON`) | `8366279063 nanotons` (`8.366279063 TON`) | `16732558125 nanotons` (`16.732558125 TON`) | Stable stress evidence; not a recommended normal treasury retention target. |
 
 ## Interpretation
 
-- `0.1 TON` is acceptable for low-value MVP/testnet validation with a small number of proposals.
-- `0.1 TON` is not enough for a mainnet treasury that keeps long-lived proposal history on-chain.
-- At 100 retained proposals, a 10-year reserve estimate is already about `2.81 TON` before safety margin.
-- At 1000 retained proposals, on-chain history retention is not a normal treasury design; it requires cleanup/indexer architecture or very high reserve.
+- `0.1 TON` remains a testnet/MVP reserve, not a mainnet reserve policy for long-lived treasury history.
+- Deterministic fixtures provide the baseline sizing evidence for `0`, `10`, and `100` retained proposals.
+- The measured `100` proposal fixture is the current bounded-history sizing input.
+- Unbounded on-chain proposal history remains unacceptable for a mainnet treasury.
+- The measured `1000` proposal fixture is stress evidence, not a normal treasury retention target.
 
 ## Reserve Tiers
 
@@ -68,6 +73,7 @@ Future governance/config changes require a separate design with stronger approva
 
 ## Limitations
 
-- Estimates are approximate and based on current observed Track A state plus linear scaling assumptions.
+- Bounded scenario sizes are measured in the Acton sandbox from contract messages.
+- Live-chain state can differ from deterministic sandbox fixture state.
 - Network config can change; values must be regenerated before mainnet release.
 - This document does not implement cleanup, pruning, indexer behavior, or contract-level reserve changes.

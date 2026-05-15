@@ -1,8 +1,10 @@
+import "@stdlib/gas-payments"
+
 import "@acton/ffi"
+import "@acton/io"
 import "@acton/emulation/network"
 import "@acton/testing/expect"
 import "@acton/types/transaction"
-
 import "@contracts/types"
 import "@wrappers/Treasury.gen"
 
@@ -86,6 +88,44 @@ get fun `test invalid treasury config is rejected`() {
         to: duplicateCollapsed.address,
         exitCode: Errors.DuplicateOwner,
     });
+}
+
+get fun `test storage size measurements are generated for bounded proposal counts`() {
+    val zero = measureStorageScenario(0);
+    val ten = measureStorageScenario(10);
+    val hundred = measureStorageScenario(100);
+
+    printStorageMeasurement(zero);
+    printStorageMeasurement(ten);
+    printStorageMeasurement(hundred);
+
+    expect(zero.proposalCount).toEqual(0);
+    expect(ten.proposalCount).toEqual(10);
+    expect(hundred.proposalCount).toEqual(100);
+
+    expect(zero.cells).toEqual(4);
+    expect(zero.bits).toEqual(687);
+    expect(zero.refs).toEqual(3);
+    expect(ten.cells).toEqual(52);
+    expect(ten.bits).toEqual(10512);
+    expect(ten.refs).toEqual(51);
+    expect(hundred.cells).toEqual(502);
+    expect(hundred.bits).toEqual(98569);
+    expect(hundred.refs).toEqual(501);
+    expect(ten.cells > zero.cells).toBeTrue();
+    expect(ten.bits > zero.bits).toBeTrue();
+    expect(hundred.cells > ten.cells).toBeTrue();
+    expect(hundred.bits > ten.bits).toBeTrue();
+}
+
+get fun `test storage size measurement optional thousand proposal probe`() {
+    val thousand = measureStorageScenario(1000);
+    printStorageMeasurement(thousand);
+
+    expect(thousand.proposalCount).toEqual(1000);
+    expect(thousand.cells).toEqual(5002);
+    expect(thousand.bits).toEqual(976248);
+    expect(thousand.refs).toEqual(5001);
 }
 
 get fun `test owner creates payout proposal with creator auto approval`() {
@@ -368,10 +408,147 @@ get fun `test executed proposal cannot be cancelled`() {
     });
 }
 
+const STORAGE_SIZE_MAX_CELLS: int = 10000
+const STORAGE_ONE_YEAR_SECONDS: int = 31536000
+const STORAGE_FIVE_YEAR_SECONDS: int = 157680000
+const STORAGE_TEN_YEAR_SECONDS: int = 315360000
+
+struct StorageMeasurement {
+    proposalCount: int
+    cells: int
+    bits: int
+    refs: int
+    oneYearFee: coins
+    fiveYearFee: coins
+    tenYearFee: coins
+}
+
+fun measureStorageScenario(proposalCount: int): StorageMeasurement {
+    val (contract, ownerA, _, recipient) = setupStorageSizingTreasury(proposalCount);
+    createStorageSizingProposals(contract, ownerA, recipient, proposalCount);
+    return measureTreasuryStorage(contract, proposalCount);
+}
+
+fun setupStorageSizingTreasury(proposalCount: int): (
+    Treasury,
+    TestTreasury,
+    TestTreasury,
+    TestTreasury,
+) {
+    if (proposalCount == 0) {
+        return setupTreasuryWithOwners("storageOwnerA0", "storageOwnerB0", "storageRecipient0");
+    }
+    if (proposalCount == 10) {
+        return setupTreasuryWithOwners("storageOwnerA10", "storageOwnerB10", "storageRecipient10");
+    }
+    if (proposalCount == 100) {
+        return setupTreasuryWithOwners(
+            "storageOwnerA100",
+            "storageOwnerB100",
+            "storageRecipient100",
+        );
+    }
+    if (proposalCount == 1000) {
+        return setupTreasuryWithOwners(
+            "storageOwnerA1000",
+            "storageOwnerB1000",
+            "storageRecipient1000",
+        );
+    }
+    throw 997;
+}
+
+fun createStorageSizingProposals(
+    contract: Treasury,
+    creator: TestTreasury,
+    recipient: TestTreasury,
+    proposalCount: int,
+) {
+    var i = 0;
+    while (i < proposalCount) {
+        val res = contract.sendCreatePayoutProposal(
+            creator.address,
+            recipient.address,
+            ton("0.01"),
+            blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+            { value: ton("0.05") },
+        );
+        expect(res).toHaveSuccessfulTx<CreatePayoutProposal>({
+            from: creator.address,
+            to: contract.address,
+        });
+        i += 1;
+    }
+}
+
+fun measureTreasuryStorage(contract: Treasury, proposalCount: int): StorageMeasurement {
+    val data = testTreasuryDataCell(contract.address);
+    val (cells, bits, refs) = data.calculateSizeStrict(STORAGE_SIZE_MAX_CELLS);
+
+    return StorageMeasurement {
+        proposalCount,
+        cells,
+        bits,
+        refs,
+        oneYearFee: calculateStorageFee(0, STORAGE_ONE_YEAR_SECONDS, bits, cells),
+        fiveYearFee: calculateStorageFee(0, STORAGE_FIVE_YEAR_SECONDS, bits, cells),
+        tenYearFee: calculateStorageFee(0, STORAGE_TEN_YEAR_SECONDS, bits, cells),
+    };
+}
+
+fun testTreasuryDataCell(addr: address): cell {
+    val shard = testGetShardAccount(addr)!;
+    val account = shard.account.load();
+    match (account) {
+        TlbAccountInfo => {
+            val state = account.storage.state;
+            match (state) {
+                TlbAccountStateActive => {
+                    return state.stateInit.data!;
+                }
+                TlbAccountStateUninit => {
+                    throw 998;
+                }
+                TlbAccountStateFrozen => {
+                    throw 998;
+                }
+            }
+        }
+        TlbAccountNone => {
+            throw 999;
+        }
+    }
+}
+
+fun printStorageMeasurement(measurement: StorageMeasurement) {
+    println(
+        "storage-size proposals={} cells={} bits={} refs={}",
+        measurement.proposalCount,
+        measurement.cells,
+        measurement.bits,
+        measurement.refs,
+    );
+    println(
+        "storage-fee proposals={} oneYearFee={} fiveYearFee={} tenYearFee={}",
+        measurement.proposalCount,
+        measurement.oneYearFee,
+        measurement.fiveYearFee,
+        measurement.tenYearFee,
+    );
+}
+
 fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
-    val ownerA = testTreasury("ownerA");
-    val ownerB = testTreasury("ownerB");
-    val outsider = testTreasury("outsider");
+    return setupTreasuryWithOwners("ownerA", "ownerB", "outsider");
+}
+
+fun setupTreasuryWithOwners(
+    ownerAName: string,
+    ownerBName: string,
+    outsiderName: string,
+): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
+    val ownerA = testTreasury(ownerAName);
+    val ownerB = testTreasury(ownerBName);
+    val outsider = testTreasury(outsiderName);
 
     var owners: map<address, uint8> = [];
     owners.set(ownerA.address, OWNER_KEY_VALUE);
