@@ -49,7 +49,7 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 
 ## Known Evidence
 
-- Deterministic contract tests: `20 passed in 1 file`.
+- Deterministic contract tests: `22 passed in 1 file`.
 - Testnet deployment: `kQAEswTqc4bDarhACzMsgMhOXOgYcYHaXLLnwwOnMepqhSnA`.
 - Testnet manual flow: create proposal, second-owner approve, execute payout.
 - Proposal `0` final status: `Executed`.

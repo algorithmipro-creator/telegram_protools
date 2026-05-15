@@ -8,7 +8,7 @@ Compare Track A custom Tolk and Track B official multisig v2 based architecture 
 
 | Criterion | Weight | Track A Score 1-5 | Track B Score 1-5 | Evidence |
 |---|---:|---:|---:|---|
-| Security / auditability | 30 | 3 | 0 | Track A has 20 deterministic tests, testnet create/approve/execute evidence, source verification dry-run evidence, and a security checklist; final source verification transaction and security review are still required before mainnet. |
+| Security / auditability | 30 | 3 | 0 | Track A has 22 deterministic tests, testnet create/approve/execute evidence, source verification dry-run evidence, and a security checklist; final source verification transaction and security review are still required before mainnet. |
 | User UX clarity | 20 | 2 | 0 | Contract flow works through scripts; no Mini App or user-facing signing flow has been tested yet. |
 | Development complexity | 15 | 4 | 0 | Custom Tolk Treasury, wrappers, deploy script, and testnet scripts are implemented; TypeScript wrapper friction was resolved. |
 | Gas/fees | 15 | 3 | 0 | Real testnet action costs and measured sandbox storage fixtures are recorded for Track A; mainnet still needs retention policy approval and final network-config sizing. |
