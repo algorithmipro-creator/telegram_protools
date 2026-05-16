@@ -523,6 +523,61 @@ get fun `test execute proposal rejects insufficient inbound value`() {
     expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Executable);
 }
 
+get fun `test create proposal rejects expiry beyond maximum`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+
+    val res = contract.sendCreatePayoutProposal(
+        ownerA.address,
+        outsider.address,
+        ton("0.20"),
+        blockchain.now() + MAX_EXPIRY_SECONDS + 1,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveFailedTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidExpiry,
+    });
+}
+
+get fun `test create proposal accepts maximum expiry exactly`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    val expiresAt = blockchain.now() + MAX_EXPIRY_SECONDS;
+
+    val res = contract.sendCreatePayoutProposal(
+        ownerA.address,
+        outsider.address,
+        ton("0.20"),
+        expiresAt,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveSuccessfulTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    expect(contract.proposal(0).expiresAt).toEqual(expiresAt);
+}
+
+get fun `test create proposal rejects treasury self recipient`() {
+    val (contract, ownerA, _, _) = setupTreasury();
+
+    val res = contract.sendCreatePayoutProposal(
+        ownerA.address,
+        contract.address,
+        ton("0.20"),
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveFailedTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidRecipient,
+    });
+}
+
 fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
     val ownerA = testTreasury("ownerA");
     val ownerB = testTreasury("ownerB");
