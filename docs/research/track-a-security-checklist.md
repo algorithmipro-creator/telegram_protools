@@ -10,18 +10,20 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 
 | Area | Status | Evidence Or Follow-Up |
 |---|---|---|
-| Owner set | Needs review | Confirm owners are immutable or changes require a reviewed proposal flow before beta expansion. |
-| Threshold | Needs review | Confirm threshold is initialized safely and cannot be lowered without explicit reviewed governance. |
+| Owner set | Bounded in Core v0.1, needs external review | Owners are immutable after deploy and owner count is limited to `2..10`; governance changes remain out of scope. |
+| Threshold | Covered by config validation, needs external review | Threshold must be greater than `0` and no greater than owner count; post-deploy threshold changes remain out of scope. |
 | Duplicate approvals | Covered by tests, needs external review | Unit tests cover duplicate approval rejection; review approval key derivation and map semantics. |
 | Proposal lifecycle | Covered by tests, needs external review | Unit tests cover pending, executable, executed, canceled, and expired paths. |
-| Expiry | Covered by tests, needs external review | Confirm expiry checks are applied consistently to approve and execute paths. |
+| Expiry | Covered by tests, needs external review | Proposal creation enforces future expiry and a 30-day maximum; approve and execute reject expired proposals. |
 | Cancel constraints | Covered by tests, needs external review | Confirm only intended owner/creator authority can cancel and that cancellation is terminal. |
 | Execute once | Covered by tests, needs external review | Unit tests and testnet flow show proposal `0` reaches `Executed`; review terminal-state enforcement. |
-| Reserve accounting | Covered by tests, needs external review | Confirm `feeReserve` prevents draining below reserve across edge-case amounts and message values. |
+| Reserve accounting | Covered by tests, needs external review | `feeReserve` uses pre-inbound balance for execute and includes exact-reserve and drain-prevention tests. |
 | Storage reserve sizing | Policy recorded, needs measured max-state tests | See `docs/research/track-a-storage-reserve-policy.md`; regenerate estimates before mainnet. |
 | Proposal history retention | Needs design before mainnet scale | Unbounded on-chain proposal/approval history is not acceptable for mainnet scale. |
 | Replay and double execution | Covered by tests, needs external review | Confirm proposal IDs, status transitions, and approval keys prevent replay after terminal states. |
-| External message value assumptions | Needs review | Confirm minimum inbound value assumptions for create, approve, cancel, and execute messages. |
+| External message value assumptions | Enforced in contract, needs external review | Create, approve, cancel, and execute enforce per-operation minimum inbound values. |
+| Recipient validation | Covered by tests, needs external review | Payout recipient cannot be the Treasury contract address. |
+| Action-phase evidence | Covered by tests, needs external review | Execute tests inspect action-phase success and payout transaction evidence. |
 | Getter and storage visibility | Needs review | Confirm public getters expose enough review data without leaking sensitive operational data. |
 | Source verification | Dry-run complete | See `docs/research/track-a-source-verification.md`; final verifier transaction not sent. |
 | Operational blockers | Active | Mainnet remains blocked pending review/audit and release checklist. |
@@ -49,7 +51,7 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 
 ## Known Evidence
 
-- Deterministic contract tests: `20 passed in 1 file`.
+- Deterministic contract tests: hardening suite covers config bounds, message values, expiry bounds, recipient validation, terminal states, reserve behavior, and action-phase payout evidence.
 - Testnet deployment: `kQAEswTqc4bDarhACzMsgMhOXOgYcYHaXLLnwwOnMepqhSnA`.
 - Testnet manual flow: create proposal, second-owner approve, execute payout.
 - Proposal `0` final status: `Executed`.

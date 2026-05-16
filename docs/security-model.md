@@ -38,6 +38,11 @@ Track A hardening evidence:
 | No double execution | Executed proposal cannot execute again |
 | Deterministic split math | UI preview and onchain result match |
 | Fee reserve | Treasury does not drain below configured reserve |
+| Bounded owner count | Treasury owner count is limited to `2..10` in Core v0.1 |
+| Minimum message value | State-changing messages enforce per-operation inbound value minimums |
+| Bounded proposal expiry | Payout proposal expiry is in the future and no more than 30 days ahead |
+| Recipient sanity | Payout recipient cannot be the Treasury contract itself |
+| Execute action success | Successful execution emits the intended payout action and child transfer evidence |
 | Bounded on-chain history | Treasury does not rely on unlimited retained proposals/approvals |
 | Payload transparency | Payload is decoded or marked with a warning |
 | Replay protection | Proposal/action cannot be reused after terminal status |
@@ -49,6 +54,11 @@ Track A hardening evidence:
 | Single owner drain | N-of-M approval threshold |
 | Replay | nonce, status, terminal proposal states |
 | Storage exhaustion | reserve sizing, bounded retention, cleanup/indexer policy |
+| Owner-set growth | hard-coded `MAX_OWNER_COUNT = 10` and deployment-time config validation |
+| Underfunded state-changing message | per-operation minimum inbound value checks |
+| Stale long-lived proposal | maximum proposal expiry window |
+| Self-payout noise | recipient cannot equal Treasury contract address |
+| Action-phase ambiguity | deterministic test inspects action phase and payout transaction evidence |
 | Double approval | approval bitmap/map per proposal |
 | Expired execution | expiry check before approval and execution |
 | Unknown payload | human-readable parser plus raw technical details |
