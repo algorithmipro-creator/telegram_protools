@@ -14,6 +14,8 @@ Track A hardening evidence:
 - Storage reserve policy: `docs/research/track-a-storage-reserve-policy.md`.
 - Security review readiness checklist: `docs/research/track-a-security-checklist.md`.
 
+This hardening evidence currently applies to Track A Treasury Core only. Splitter, Telegram, backend/indexer, Track B, and mainnet remain future or out of scope unless separately documented.
+
 ## Assets To Protect
 
 - Treasury TON balance.
@@ -43,7 +45,7 @@ Track A hardening evidence:
 | Bounded proposal expiry | Payout proposal expiry is in the future and no more than 30 days ahead |
 | Recipient sanity | Payout recipient cannot be the Treasury contract itself |
 | Execute action success | Successful execution emits the intended payout action and child transfer evidence |
-| Bounded on-chain history | Treasury does not rely on unlimited retained proposals/approvals |
+| History retention policy | Mainnet requires bounded on-chain history or cleanup/indexer-backed retention |
 | Payload transparency | Payload is decoded or marked with a warning |
 | Replay protection | Proposal/action cannot be reused after terminal status |
 
@@ -53,7 +55,7 @@ Track A hardening evidence:
 |---|---|
 | Single owner drain | N-of-M approval threshold |
 | Replay | nonce, status, terminal proposal states |
-| Storage exhaustion | reserve sizing, bounded retention, cleanup/indexer policy |
+| Storage exhaustion | reserve sizing policy recorded; bounded retention or cleanup/indexer design required before mainnet |
 | Owner-set growth | hard-coded `MAX_OWNER_COUNT = 10` and deployment-time config validation |
 | Underfunded state-changing message | per-operation minimum inbound value checks |
 | Stale long-lived proposal | maximum proposal expiry window |
@@ -63,7 +65,7 @@ Track A hardening evidence:
 | Expired execution | expiry check before approval and execution |
 | Unknown payload | human-readable parser plus raw technical details |
 | Owner spoofing | onchain sender validation |
-| Threshold attack | threshold updates disabled in beta UI or require approved proposal |
+| Threshold attack | owner and threshold changes are not implemented in Core v0.1; future governance requires separate reviewed design |
 | Jetton spoofing | Jettons excluded from first beta |
 | Bounce confusion | activity visibility and explicit failure state where possible |
 | Frontend compromise | onchain checks, generated wrappers, raw payload preview, source verification |
