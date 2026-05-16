@@ -578,6 +578,66 @@ get fun `test create proposal rejects treasury self recipient`() {
     });
 }
 
+get fun `test unknown non empty body is rejected`() {
+    val (contract, _, _, outsider) = setupTreasury();
+    val unknownBody = beginCell().storeUint(0xFFFFFFFF, 32).endCell();
+
+    val res = contract.sendAny(outsider.address, unknownBody, { value: ton("0.30") });
+    expect(res).toHaveFailedTx({
+        from: outsider.address,
+        to: contract.address,
+        exitCode: Errors.InvalidMessage,
+    });
+}
+
+get fun `test executed proposal cannot be approved`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    createProposal(contract, ownerA, recipient.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+    executeProposal(contract, ownerA, 0);
+
+    val res = contract.sendApproveProposal(ownerB.address, 0, { value: MIN_APPROVE_VALUE });
+    expect(res).toHaveFailedTx<ApproveProposal>({
+        from: ownerB.address,
+        to: contract.address,
+        exitCode: Errors.ProposalNotPending,
+    });
+}
+
+get fun `test cancelled proposal cannot be approved`() {
+    val (contract, ownerA, ownerB, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+    val cancel = contract.sendCancelProposal(ownerA.address, 0, { value: MIN_CANCEL_VALUE });
+    expect(cancel).toHaveSuccessfulTx<CancelProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    val res = contract.sendApproveProposal(ownerB.address, 0, { value: MIN_APPROVE_VALUE });
+    expect(res).toHaveFailedTx<ApproveProposal>({
+        from: ownerB.address,
+        to: contract.address,
+        exitCode: Errors.ProposalNotPending,
+    });
+}
+
+get fun `test cancelled proposal cannot be executed`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+    val cancel = contract.sendCancelProposal(ownerA.address, 0, { value: MIN_CANCEL_VALUE });
+    expect(cancel).toHaveSuccessfulTx<CancelProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    val res = contract.sendExecuteProposal(ownerA.address, 0, { value: MIN_EXECUTE_VALUE });
+    expect(res).toHaveFailedTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalNotPending,
+    });
+}
+
 fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
     val ownerA = testTreasury("ownerA");
     val ownerB = testTreasury("ownerB");
