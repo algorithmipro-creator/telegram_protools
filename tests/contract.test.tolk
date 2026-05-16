@@ -88,6 +88,100 @@ get fun `test invalid treasury config is rejected`() {
     });
 }
 
+get fun `test owner count below minimum is rejected`() {
+    val ownerA = testTreasury("singleOwnerA");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_KEY_VALUE);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: MIN_OWNER_COUNT - 1,
+        threshold: 1,
+        proposalSeqno: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+        approvals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveFailedTx({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidOwnerCount,
+    });
+}
+
+get fun `test owner count above maximum is rejected`() {
+    val owner1 = testTreasury("maxOwner1");
+    val owner2 = testTreasury("maxOwner2");
+    val owner3 = testTreasury("maxOwner3");
+    val owner4 = testTreasury("maxOwner4");
+    val owner5 = testTreasury("maxOwner5");
+    val owner6 = testTreasury("maxOwner6");
+    val owner7 = testTreasury("maxOwner7");
+    val owner8 = testTreasury("maxOwner8");
+    val owner9 = testTreasury("maxOwner9");
+    val owner10 = testTreasury("maxOwner10");
+    val owner11 = testTreasury("maxOwner11");
+
+    var owners: map<address, uint8> = [];
+    owners.set(owner1.address, OWNER_KEY_VALUE);
+    owners.set(owner2.address, OWNER_KEY_VALUE);
+    owners.set(owner3.address, OWNER_KEY_VALUE);
+    owners.set(owner4.address, OWNER_KEY_VALUE);
+    owners.set(owner5.address, OWNER_KEY_VALUE);
+    owners.set(owner6.address, OWNER_KEY_VALUE);
+    owners.set(owner7.address, OWNER_KEY_VALUE);
+    owners.set(owner8.address, OWNER_KEY_VALUE);
+    owners.set(owner9.address, OWNER_KEY_VALUE);
+    owners.set(owner10.address, OWNER_KEY_VALUE);
+    owners.set(owner11.address, OWNER_KEY_VALUE);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: MAX_OWNER_COUNT + 1,
+        threshold: 2,
+        proposalSeqno: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+        approvals: [],
+    });
+
+    val res = contract.deploy(owner1.address, { value: ton("1.00") });
+    expect(res).toHaveFailedTx({
+        from: owner1.address,
+        to: contract.address,
+        exitCode: Errors.InvalidOwnerCount,
+    });
+}
+
+get fun `test zero threshold is rejected`() {
+    val ownerA = testTreasury("zeroThresholdA");
+    val ownerB = testTreasury("zeroThresholdB");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_KEY_VALUE);
+    owners.set(ownerB.address, OWNER_KEY_VALUE);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        threshold: 0,
+        proposalSeqno: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+        approvals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveFailedTx({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidThreshold,
+    });
+}
+
 get fun `test owner creates payout proposal with creator auto approval`() {
     val (contract, ownerA, _, outsider) = setupTreasury();
     val expiresAt = blockchain.now() + DEFAULT_EXPIRY_SECONDS;

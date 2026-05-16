@@ -1,7 +1,14 @@
 const OWNER_KEY_VALUE: uint8 = 1
 const APPROVAL_KEY_VALUE: uint8 = 1
+const MIN_OWNER_COUNT: uint8 = 2
+const MAX_OWNER_COUNT: uint8 = 10
 const DEFAULT_EXPIRY_SECONDS: uint32 = 86400
+const MAX_EXPIRY_SECONDS: uint32 = 2592000
 const DEFAULT_FEE_RESERVE: coins = ton("0.10")
+const MIN_CREATE_VALUE: coins = ton("0.05")
+const MIN_APPROVE_VALUE: coins = ton("0.05")
+const MIN_CANCEL_VALUE: coins = ton("0.05")
+const MIN_EXECUTE_VALUE: coins = ton("0.05")
 
 enum Errors {
     NotOwner = 128
@@ -20,6 +27,7 @@ enum Errors {
     AlreadyExecutable = 141
     InsufficientBalance = 142
     NotCreator = 143
+    InsufficientMessageValue = 144
 }
 
 enum ProposalStatus: uint8 {
@@ -77,7 +85,8 @@ fun Storage.save(self) {
 }
 
 fun Storage.assertValidConfig(self) {
-    assert (self.ownerCount > 0) throw Errors.InvalidOwnerCount;
+    assert (self.ownerCount >= MIN_OWNER_COUNT) throw Errors.InvalidOwnerCount;
+    assert (self.ownerCount <= MAX_OWNER_COUNT) throw Errors.InvalidOwnerCount;
     assert (self.ownerMapCount() == self.ownerCount) throw Errors.DuplicateOwner;
     assert (self.threshold > 0) throw Errors.InvalidThreshold;
     assert (self.threshold <= self.ownerCount) throw Errors.InvalidThreshold;
