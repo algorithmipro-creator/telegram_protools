@@ -1,6 +1,7 @@
 import "@acton/ffi"
 import "@acton/emulation/network"
 import "@acton/testing/expect"
+import "@acton/tlb/maybe"
 import "@acton/types/transaction"
 
 import "@contracts/types"
@@ -638,6 +639,25 @@ get fun `test cancelled proposal cannot be executed`() {
     });
 }
 
+get fun `test execute payout action phase succeeds`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    createProposal(contract, ownerA, recipient.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+
+    val res = contract.sendExecuteProposal(ownerA.address, 0, { value: MIN_EXECUTE_VALUE });
+    expect(res).toHaveSuccessfulTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    expectSuccessfulPayoutActionPhase(res);
+    expect(res).toHaveTx({
+        from: contract.address,
+        to: recipient.address,
+        value: ton("0.20"),
+    });
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Executed);
+}
+
 fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
     val ownerA = testTreasury("ownerA");
     val ownerB = testTreasury("ownerB");
@@ -691,6 +711,22 @@ fun executeProposal(contract: Treasury, owner: TestTreasury, proposalId: uint64)
         from: owner.address,
         to: contract.address,
     });
+}
+
+fun expectSuccessfulPayoutActionPhase(res: SendResultList) {
+    val rootTx = res.at(0).tx.load();
+    val descr = rootTx.description.load();
+    if (descr is TlbTransOrd) {
+        val actionCell = descr.action.unwrapOr(null);
+        assert (actionCell != null) throw 998;
+        val action = actionCell!.load();
+        expect(action.success).toBeTrue();
+        expect(action.valid).toBeTrue();
+        expect(action.resultCode).toEqual(0);
+        expect(action.msgsCreated).toEqual(1);
+    } else {
+        throw 999;
+    }
 }
 
 // SAFETY: Test-only mirror of Acton's emulation time helper, limited to C7 reads.
