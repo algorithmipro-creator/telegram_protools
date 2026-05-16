@@ -462,6 +462,67 @@ get fun `test executed proposal cannot be cancelled`() {
     });
 }
 
+get fun `test create proposal rejects insufficient inbound value`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+
+    val res = contract.sendCreatePayoutProposal(
+        ownerA.address,
+        outsider.address,
+        ton("0.20"),
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE - 1 },
+    );
+
+    expect(res).toHaveFailedTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InsufficientMessageValue,
+    });
+}
+
+get fun `test approve proposal rejects insufficient inbound value`() {
+    val (contract, ownerA, ownerB, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    val res = contract.sendApproveProposal(ownerB.address, 0, { value: MIN_APPROVE_VALUE - 1 });
+    expect(res).toHaveFailedTx<ApproveProposal>({
+        from: ownerB.address,
+        to: contract.address,
+        exitCode: Errors.InsufficientMessageValue,
+    });
+
+    expect(contract.proposal(0).approvalCount).toEqual(1);
+}
+
+get fun `test cancel proposal rejects insufficient inbound value`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    val res = contract.sendCancelProposal(ownerA.address, 0, { value: MIN_CANCEL_VALUE - 1 });
+    expect(res).toHaveFailedTx<CancelProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InsufficientMessageValue,
+    });
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Pending);
+}
+
+get fun `test execute proposal rejects insufficient inbound value`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    createProposal(contract, ownerA, recipient.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+
+    val res = contract.sendExecuteProposal(ownerA.address, 0, { value: MIN_EXECUTE_VALUE - 1 });
+    expect(res).toHaveFailedTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InsufficientMessageValue,
+    });
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Executable);
+}
+
 fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
     val ownerA = testTreasury("ownerA");
     val ownerB = testTreasury("ownerB");
@@ -493,7 +554,7 @@ fun createProposal(contract: Treasury, creator: TestTreasury, recipient: address
         recipient,
         amount,
         blockchain.now() + DEFAULT_EXPIRY_SECONDS,
-        { value: ton("0.05") },
+        { value: MIN_CREATE_VALUE },
     );
     expect(res).toHaveSuccessfulTx<CreatePayoutProposal>({
         from: creator.address,
@@ -502,7 +563,7 @@ fun createProposal(contract: Treasury, creator: TestTreasury, recipient: address
 }
 
 fun approveProposal(contract: Treasury, owner: TestTreasury, proposalId: uint64) {
-    val res = contract.sendApproveProposal(owner.address, proposalId, { value: ton("0.05") });
+    val res = contract.sendApproveProposal(owner.address, proposalId, { value: MIN_APPROVE_VALUE });
     expect(res).toHaveSuccessfulTx<ApproveProposal>({
         from: owner.address,
         to: contract.address,
@@ -510,7 +571,7 @@ fun approveProposal(contract: Treasury, owner: TestTreasury, proposalId: uint64)
 }
 
 fun executeProposal(contract: Treasury, owner: TestTreasury, proposalId: uint64) {
-    val res = contract.sendExecuteProposal(owner.address, proposalId, { value: ton("0.05") });
+    val res = contract.sendExecuteProposal(owner.address, proposalId, { value: MIN_EXECUTE_VALUE });
     expect(res).toHaveSuccessfulTx<ExecuteProposal>({
         from: owner.address,
         to: contract.address,

@@ -8,6 +8,10 @@ contract Treasury {
     incomingMessages: TreasuryMessage
 }
 
+fun requireMinValue(value: coins, minValue: coins) {
+    assert (value >= minValue) throw Errors.InsufficientMessageValue;
+}
+
 fun onInternalMessage(in: InMessage) {
     val msg = lazy TreasuryMessage.fromSlice(in.body);
 
@@ -15,6 +19,7 @@ fun onInternalMessage(in: InMessage) {
         CreatePayoutProposal => {
             var storage = lazy Storage.load();
             storage.assertValidConfig();
+            requireMinValue(in.valueCoins, MIN_CREATE_VALUE);
             storage.assertOwner(in.senderAddress);
             assert (msg.amount > 0) throw Errors.InvalidAmount;
             assert (msg.expiresAt > blockchain.now()) throw Errors.InvalidExpiry;
@@ -44,6 +49,7 @@ fun onInternalMessage(in: InMessage) {
         ApproveProposal => {
             var storage = lazy Storage.load();
             storage.assertValidConfig();
+            requireMinValue(in.valueCoins, MIN_APPROVE_VALUE);
             storage.assertOwner(in.senderAddress);
 
             var proposal = storage.mustGetProposal(msg.proposalId);
@@ -61,6 +67,7 @@ fun onInternalMessage(in: InMessage) {
         ExecuteProposal => {
             var storage = lazy Storage.load();
             storage.assertValidConfig();
+            requireMinValue(in.valueCoins, MIN_EXECUTE_VALUE);
             storage.assertOwner(in.senderAddress);
 
             var proposal = storage.mustGetProposal(msg.proposalId);
@@ -81,6 +88,7 @@ fun onInternalMessage(in: InMessage) {
         CancelProposal => {
             var storage = lazy Storage.load();
             storage.assertValidConfig();
+            requireMinValue(in.valueCoins, MIN_CANCEL_VALUE);
             storage.assertOwner(in.senderAddress);
 
             var proposal = storage.mustGetProposal(msg.proposalId);
