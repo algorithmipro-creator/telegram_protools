@@ -342,12 +342,20 @@ get fun `test owner creates payout proposal with creator auto approval`() {
 
     val proposal = contract.proposal(0);
     expect(proposal.id).toEqual(0);
+    expect(proposal.kind).toEqual(ProposalKind.PayoutTon);
     expect(proposal.creator).toEqual(ownerA.address);
-    expect(proposal.recipient).toEqual(outsider.address);
-    expect(proposal.amount).toEqual(ton("0.20"));
+    expect(proposal.configVersionAtCreation).toEqual(0);
+    expect(proposal.currentConfigVersion).toEqual(0);
     expect(proposal.expiresAt).toEqual(expiresAt);
     expect(proposal.status).toEqual(ProposalViewStatus.Pending);
     expect(proposal.approvalCount).toEqual(1);
+    expect(proposal.requiredApprovalCount).toEqual(2);
+    expect(proposal.payoutRecipient).toEqual(outsider.address);
+    expect(proposal.payoutAmount).toEqual(ton("0.20"));
+    expect(proposal.newOwnerCount).toEqual(0);
+    expect(proposal.newPayoutThreshold).toEqual(0);
+    expect(proposal.newConfigThreshold).toEqual(0);
+    expect(proposal.newFeeReserve).toEqual(0);
     expect(contract.hasApproval(0, ownerA.address)).toBeTrue();
     expect(contract.proposalSeqno()).toEqual(1);
 }
@@ -393,7 +401,11 @@ get fun `test second owner approves proposal`() {
     });
 
     val proposal = contract.proposal(0);
+    expect(proposal.kind).toEqual(ProposalKind.PayoutTon);
     expect(proposal.approvalCount).toEqual(2);
+    expect(proposal.requiredApprovalCount).toEqual(2);
+    expect(proposal.payoutRecipient).toEqual(outsider.address);
+    expect(proposal.payoutAmount).toEqual(ton("0.20"));
     expect(proposal.status).toEqual(ProposalViewStatus.Executable);
     expect(contract.hasApproval(0, ownerB.address)).toBeTrue();
 }

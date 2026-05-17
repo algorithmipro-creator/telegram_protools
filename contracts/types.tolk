@@ -43,34 +43,66 @@ enum ProposalStatus: uint8 {
     Cancelled = 2
 }
 
+enum ProposalKind: uint8 {
+    PayoutTon = 0
+    SetTreasuryConfig = 1
+}
+
 enum ProposalViewStatus: uint8 {
     Pending = 0
     Executable = 1
     Executed = 2
     Cancelled = 3
     Expired = 4
+    Stale = 5
 }
 
-struct PayoutProposal {
-    id: uint64
-    creator: address
+struct (0x54525001) PayoutTonPayload {
     recipient: address
     amount: coins
+}
+
+struct (0x54525002) SetTreasuryConfigPayload {
+    newOwnerCount: uint8
+    newPayoutThreshold: uint8
+    newConfigThreshold: uint8
+    newFeeReserve: coins
+    newOwners: map<address, uint8>
+}
+
+type ProposalPayload = PayoutTonPayload | SetTreasuryConfigPayload
+
+struct Proposal {
+    id: uint64
+    kind: ProposalKind
+    creator: address
     createdAt: uint32
     expiresAt: uint32
+    configVersionAtCreation: uint32
     status: ProposalStatus
     approvalCount: uint8
+    payload: ProposalPayload
 }
 
 struct ProposalView {
     id: uint64
+    kind: ProposalKind
     creator: address
-    recipient: address
-    amount: coins
     createdAt: uint32
     expiresAt: uint32
+    configVersionAtCreation: uint32
+    currentConfigVersion: uint32
     status: ProposalViewStatus
     approvalCount: uint8
+    requiredApprovalCount: uint8
+    payoutRecipient: address
+    payoutAmount: coins
+    recipient: address
+    amount: coins
+    newOwnerCount: uint8
+    newPayoutThreshold: uint8
+    newConfigThreshold: uint8
+    newFeeReserve: coins
 }
 
 struct Storage {
@@ -82,7 +114,7 @@ struct Storage {
     proposalSeqno: uint64
     feeReserve: coins
     owners: map<address, uint8>
-    proposals: map<uint64, Cell<PayoutProposal>>
+    proposals: map<uint64, Cell<Proposal>>
     approvals: map<uint256, uint8>
 }
 
@@ -123,25 +155,47 @@ fun Storage.assertOwner(self, owner: address) {
     assert (self.isOwner(owner)) throw Errors.NotOwner;
 }
 
+fun Storage.requiredThreshold(self, kind: ProposalKind): uint8 {
+    if (kind == ProposalKind.PayoutTon) {
+        return self.payoutThreshold;
+    }
+    if (kind == ProposalKind.SetTreasuryConfig) {
+        return self.configThreshold;
+    }
+    assert (false) throw Errors.InvalidProposalKind;
+    return 0;
+}
+
 fun approvalKey(proposalId: uint64, owner: address): uint256 {
     return beginCell().storeUint(proposalId, 64).storeAddress(owner).endCell().hash();
 }
 
-fun Storage.mustGetProposal(self, proposalId: uint64): PayoutProposal {
+fun Storage.mustGetProposal(self, proposalId: uint64): Proposal {
     val proposalCell = self.proposals.mustGet(proposalId, Errors.ProposalNotFound);
     return proposalCell.load();
 }
 
-fun PayoutProposal.isExpired(self): bool {
+fun Proposal.isExpired(self): bool {
     return blockchain.now() >= self.expiresAt;
 }
 
-fun PayoutProposal.viewStatus(self, threshold: uint8): ProposalViewStatus {
+fun Proposal.isStale(self, currentConfigVersion: uint32): bool {
+    return self.configVersionAtCreation != currentConfigVersion;
+}
+
+fun zeroAddress(): address {
+    return address("0:0000000000000000000000000000000000000000000000000000000000000000");
+}
+
+fun Proposal.viewStatus(self, currentConfigVersion: uint32, threshold: uint8): ProposalViewStatus {
     if (self.status == ProposalStatus.Executed) {
         return ProposalViewStatus.Executed;
     }
     if (self.status == ProposalStatus.Cancelled) {
         return ProposalViewStatus.Cancelled;
+    }
+    if (self.isStale(currentConfigVersion)) {
+        return ProposalViewStatus.Stale;
     }
     if (self.isExpired()) {
         return ProposalViewStatus.Expired;
@@ -152,16 +206,47 @@ fun PayoutProposal.viewStatus(self, threshold: uint8): ProposalViewStatus {
     return ProposalViewStatus.Pending;
 }
 
-fun PayoutProposal.toView(self, threshold: uint8): ProposalView {
+fun Proposal.toView(self, currentConfigVersion: uint32, threshold: uint8): ProposalView {
+    var payoutRecipient = zeroAddress();
+    var payoutAmount: coins = 0;
+    var newOwnerCount: uint8 = 0;
+    var newPayoutThreshold: uint8 = 0;
+    var newConfigThreshold: uint8 = 0;
+    var newFeeReserve: coins = 0;
+
+    val payload = self.payload;
+    match (payload) {
+        PayoutTonPayload => {
+            payoutRecipient = payload.recipient;
+            payoutAmount = payload.amount;
+        }
+        SetTreasuryConfigPayload => {
+            newOwnerCount = payload.newOwnerCount;
+            newPayoutThreshold = payload.newPayoutThreshold;
+            newConfigThreshold = payload.newConfigThreshold;
+            newFeeReserve = payload.newFeeReserve;
+        }
+    }
+
     return ProposalView {
         id: self.id,
+        kind: self.kind,
         creator: self.creator,
-        recipient: self.recipient,
-        amount: self.amount,
         createdAt: self.createdAt,
         expiresAt: self.expiresAt,
-        status: self.viewStatus(threshold),
+        configVersionAtCreation: self.configVersionAtCreation,
+        currentConfigVersion,
+        status: self.viewStatus(currentConfigVersion, threshold),
         approvalCount: self.approvalCount,
+        requiredApprovalCount: threshold,
+        payoutRecipient,
+        payoutAmount,
+        recipient: payoutRecipient,
+        amount: payoutAmount,
+        newOwnerCount,
+        newPayoutThreshold,
+        newConfigThreshold,
+        newFeeReserve,
     };
 }
 

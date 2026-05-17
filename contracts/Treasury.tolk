@@ -28,15 +28,19 @@ fun onInternalMessage(in: InMessage) {
             assert (msg.expiresAt <= now + MAX_EXPIRY_SECONDS) throw Errors.InvalidExpiry;
 
             val proposalId = storage.proposalSeqno;
-            val proposal = PayoutProposal {
+            val proposal = Proposal {
                 id: proposalId,
+                kind: ProposalKind.PayoutTon,
                 creator: in.senderAddress,
-                recipient: msg.recipient,
-                amount: msg.amount,
                 createdAt: now as uint32,
                 expiresAt: msg.expiresAt,
+                configVersionAtCreation: storage.configVersion,
                 status: ProposalStatus.Pending,
                 approvalCount: 1,
+                payload: PayoutTonPayload {
+                    recipient: msg.recipient,
+                    amount: msg.amount,
+                },
             };
 
             storage.proposals.set(proposalId, proposal.toCell());
@@ -57,6 +61,8 @@ fun onInternalMessage(in: InMessage) {
 
             var proposal = storage.mustGetProposal(msg.proposalId);
             assert (proposal.status == ProposalStatus.Pending) throw Errors.ProposalNotPending;
+            storage.requiredThreshold(proposal.kind);
+            assert (!proposal.isStale(storage.configVersion)) throw Errors.ProposalStale;
             assert (!proposal.isExpired()) throw Errors.ProposalExpired;
 
             val key = approvalKey(msg.proposalId, in.senderAddress);
@@ -75,20 +81,23 @@ fun onInternalMessage(in: InMessage) {
 
             var proposal = storage.mustGetProposal(msg.proposalId);
             assert (proposal.status == ProposalStatus.Pending) throw Errors.ProposalNotPending;
+            assert (!proposal.isStale(storage.configVersion)) throw Errors.ProposalStale;
             assert (!proposal.isExpired()) throw Errors.ProposalExpired;
-            assert (
-                proposal.approvalCount >= storage.payoutThreshold
-            ) throw Errors.ThresholdNotReached;
+            assert (proposal.kind == ProposalKind.PayoutTon) throw Errors.InvalidProposalKind;
+            val threshold = storage.requiredThreshold(proposal.kind);
+            assert (proposal.approvalCount >= threshold) throw Errors.ThresholdNotReached;
+            val payload = proposal.payload;
+            assert (payload is PayoutTonPayload) throw Errors.InvalidProposalKind;
             val availableBalance = contract.getOriginalBalance() - in.valueCoins;
             assert (
-                availableBalance >= proposal.amount + storage.feeReserve
+                availableBalance >= payload.amount + storage.feeReserve
             ) throw Errors.InsufficientBalance;
 
             proposal.status = ProposalStatus.Executed;
             storage.proposals.set(msg.proposalId, proposal.toCell());
             storage.save();
 
-            sendTonPayout(proposal.recipient, proposal.amount);
+            sendTonPayout(payload.recipient, payload.amount);
         }
         CancelProposal => {
             var storage = lazy Storage.load();
@@ -98,11 +107,11 @@ fun onInternalMessage(in: InMessage) {
 
             var proposal = storage.mustGetProposal(msg.proposalId);
             assert (proposal.status == ProposalStatus.Pending) throw Errors.ProposalNotPending;
+            assert (!proposal.isStale(storage.configVersion)) throw Errors.ProposalStale;
             assert (!proposal.isExpired()) throw Errors.ProposalExpired;
             assert (proposal.creator == in.senderAddress) throw Errors.NotCreator;
-            assert (
-                proposal.approvalCount < storage.payoutThreshold
-            ) throw Errors.AlreadyExecutable;
+            val threshold = storage.requiredThreshold(proposal.kind);
+            assert (proposal.approvalCount < threshold) throw Errors.AlreadyExecutable;
 
             proposal.status = ProposalStatus.Cancelled;
             storage.proposals.set(msg.proposalId, proposal.toCell());
@@ -170,7 +179,7 @@ get fun is_owner(owner: address): bool {
 get fun proposal(proposalId: uint64): ProposalView {
     val storage = lazy Storage.load();
     val proposal = storage.mustGetProposal(proposalId);
-    return proposal.toView(storage.payoutThreshold);
+    return proposal.toView(storage.configVersion, storage.requiredThreshold(proposal.kind));
 }
 
 get fun has_approval(proposalId: uint64, owner: address): bool {
