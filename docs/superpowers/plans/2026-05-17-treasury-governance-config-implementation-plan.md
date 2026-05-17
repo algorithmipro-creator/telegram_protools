@@ -711,6 +711,8 @@ git commit -m "feat: migrate payouts to typed proposals"
 - Modify `contracts/types.tolk`
 - Modify `contracts/Treasury.tolk`
 - Modify `tests/contract.test.tolk`
+- Regenerate `wrappers/Treasury.gen.tolk`
+- Regenerate `wrappers-ts/Treasury.gen.ts`
 
 - [ ] **Step 1: Add message type**
 
@@ -771,6 +773,10 @@ get fun `test owner creates config proposal with creator auto approval`() {
     expect(proposal.approvalCount).toEqual(1);
     expect(proposal.requiredApprovalCount).toEqual(contract.configThreshold());
     expect(proposal.newOwnerCount).toEqual(3);
+    expect(contract.ownerCount()).toEqual(2);
+    expect(contract.payoutThreshold()).toEqual(2);
+    expect(contract.configThreshold()).toEqual(2);
+    expect(contract.configVersion()).toEqual(0);
 }
 ```
 
@@ -795,6 +801,7 @@ non owner cannot create config proposal
 config proposal rejects duplicate owners
 config proposal rejects owner count below minimum
 config proposal rejects owner count above maximum
+config proposal rejects config threshold zero
 config proposal rejects payout threshold above config threshold
 config proposal rejects config threshold above new owner count
 config proposal rejects fee reserve below minimum
@@ -904,22 +911,32 @@ CreateConfigProposal => {
 
 - [ ] **Step 7: Run config creation tests**
 
+Regenerate wrappers before running tests:
+
+```powershell
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton wrapper Treasury"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton wrapper Treasury --ts --output-dir wrappers-ts"
+```
+
 Run:
 
 ```powershell
 wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test --filter 'config proposal|threshold mutable|owner count'"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton check"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton fmt --check"
 ```
 
 Expected:
 
-- config creation and validation tests pass.
+- config creation and validation tests, full tests, contract checks, and formatting pass.
 
 - [ ] **Step 8: Commit**
 
 Run:
 
 ```powershell
-git add contracts/types.tolk contracts/Treasury.tolk tests/contract.test.tolk
+git add contracts/types.tolk contracts/Treasury.tolk tests/contract.test.tolk wrappers/Treasury.gen.tolk wrappers-ts/Treasury.gen.ts
 git commit -m "feat: add Treasury config proposals"
 ```
 
