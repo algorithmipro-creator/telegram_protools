@@ -478,6 +478,8 @@ git commit -m "feat: add Treasury governance config primitives"
 - Modify `contracts/types.tolk`
 - Modify `contracts/Treasury.tolk`
 - Modify `tests/contract.test.tolk`
+- Regenerate `wrappers/Treasury.gen.tolk`
+- Regenerate `wrappers-ts/Treasury.gen.ts`
 
 - [ ] **Step 1: Add proposal kind and stale view status**
 
@@ -576,7 +578,7 @@ expect(proposal.payoutRecipient).toEqual(outsider.address);
 expect(proposal.payoutAmount).toEqual(ton("0.20"));
 ```
 
-- [ ] **Step 2: Update ProposalView**
+- [ ] **Step 5: Update ProposalView**
 
 In `contracts/types.tolk`, replace `ProposalView` with a typed view containing neutral fields and type-specific preview fields:
 
@@ -603,7 +605,7 @@ struct ProposalView {
 
 Use zero address and zero values for fields that do not apply to a proposal kind.
 
-- [ ] **Step 3: Add view status priority**
+- [ ] **Step 6: Add view status priority**
 
 Implement view-status priority:
 
@@ -628,7 +630,7 @@ fun Proposal.viewStatus(self, currentConfigVersion: uint32, requiredThreshold: u
 }
 ```
 
-- [ ] **Step 4: Update CreatePayoutProposal handler**
+- [ ] **Step 7: Update CreatePayoutProposal handler**
 
 In `contracts/Treasury.tolk`, create a generic `Proposal` with:
 
@@ -643,7 +645,7 @@ payload: PayoutTonPayload {
 
 Keep creator auto-approval and proposal seqno behavior unchanged.
 
-- [ ] **Step 5: Update approve/execute/cancel for typed proposal**
+- [ ] **Step 8: Update approve/execute/cancel for typed proposal**
 
 Update common checks to use:
 
@@ -668,24 +670,36 @@ assert (
 ) throw Errors.InsufficientBalance;
 ```
 
-- [ ] **Step 6: Run payout compatibility tests**
+- [ ] **Step 9: Regenerate wrappers**
+
+Run wrapper generation through Acton tooling:
+
+```powershell
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton wrapper Treasury"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton wrapper Treasury --ts --output-dir wrappers-ts"
+```
+
+- [ ] **Step 10: Run payout compatibility tests**
 
 Run:
 
 ```powershell
 wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test --filter 'owner creates payout|second owner approves|execute after threshold|exact reserve|draining|action phase|terminal|insufficient inbound|expiry|self recipient'"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton check"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton fmt --check"
 ```
 
 Expected:
 
-- selected payout tests pass under the typed proposal envelope.
+- selected payout tests, full tests, contract checks, and formatting pass under the typed proposal envelope.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 11: Commit**
 
 Run:
 
 ```powershell
-git add contracts/types.tolk contracts/Treasury.tolk tests/contract.test.tolk
+git add contracts/types.tolk contracts/Treasury.tolk tests/contract.test.tolk wrappers/Treasury.gen.tolk wrappers-ts/Treasury.gen.ts
 git commit -m "feat: migrate payouts to typed proposals"
 ```
 
