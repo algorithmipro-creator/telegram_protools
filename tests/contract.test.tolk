@@ -1524,6 +1524,39 @@ get fun `test stale view status has priority over expired and executable pending
     expect(proposal.requiredApprovalCount).toEqual(2);
 }
 
+get fun `test stale status is derived from config version mismatch`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasury();
+    val replacementOwners = twoOwners(ownerA, ownerC);
+
+    val createConfig = contract.sendCreateConfigProposal(
+        ownerA.address,
+        2,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        replacementOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(createConfig).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    approveProposal(contract, ownerB, 0);
+    executeProposal(contract, ownerA, 0);
+
+    createProposal(contract, ownerA, ownerB.address, ton("0.20"));
+    approveProposal(contract, ownerC, 1);
+
+    val proposal = contract.proposal(1);
+    expect(contract.configVersion()).toEqual(1);
+    expect(proposal.configVersionAtCreation).toEqual(1);
+    expect(proposal.currentConfigVersion).toEqual(1);
+    expect(proposal.approvalCount).toEqual(2);
+    expect(proposal.requiredApprovalCount).toEqual(2);
+    expect(proposal.status).toEqual(ProposalViewStatus.Executable);
+}
+
 get fun `test executed proposal remains executed even if stale`() {
     val (contract, _, _, _) = setupTreasuryWithSeededProposal(
         ProposalStatus.Executed,
