@@ -1,0 +1,2021 @@
+{
+  "timestamp": 1778962104,
+  "opcodes": {
+    "CancelProposal": {
+      "min_gas": 4360,
+      "max_gas": 7882,
+      "avg_gas": 6350,
+      "samples": 7,
+      "all_values": [
+        5522,
+        7882,
+        5600,
+        7882,
+        5322,
+        7882,
+        4360
+      ]
+    },
+    "CreatePayoutProposal": {
+      "min_gas": 4045,
+      "max_gas": 7909,
+      "avg_gas": 7200,
+      "samples": 29,
+      "all_values": [
+        7909,
+        7909,
+        7909,
+        7909,
+        7909,
+        7909,
+        7909,
+        7909,
+        7909,
+        7909,
+        7909,
+        4277,
+        7909,
+        7909,
+        4589,
+        4667,
+        7909,
+        4511,
+        7909,
+        7909,
+        7909,
+        4796,
+        7909,
+        7909,
+        7909,
+        7909,
+        7909,
+        4045,
+        7909
+      ]
+    },
+    "0xffffffff": {
+      "min_gas": 1032,
+      "max_gas": 1032,
+      "avg_gas": 1032,
+      "samples": 1,
+      "all_values": [
+        1032
+      ]
+    },
+    "ApproveProposal": {
+      "min_gas": 4102,
+      "max_gas": 9565,
+      "avg_gas": 7913,
+      "samples": 17,
+      "all_values": [
+        9565,
+        4334,
+        9565,
+        5160,
+        9565,
+        4102,
+        9565,
+        5064,
+        9565,
+        9565,
+        9565,
+        9565,
+        5064,
+        9565,
+        9565,
+        5574,
+        9565
+      ]
+    },
+    "ExecuteProposal": {
+      "min_gas": 4193,
+      "max_gas": 9117,
+      "avg_gas": 7109,
+      "samples": 12,
+      "all_values": [
+        5251,
+        9117,
+        9117,
+        9117,
+        9117,
+        5521,
+        5329,
+        9117,
+        5155,
+        4193,
+        9117,
+        5155
+      ]
+    }
+  },
+  "trace_chains": {
+    "test execute payout action phase succeeds::trace#4": {
+      "test_name": "test execute payout action phase succeeds",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test execute payout action phase succeeds::trace#5": {
+      "test_name": "test execute payout action phase succeeds",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test expired proposal cannot be executed::trace#6": {
+      "test_name": "test expired proposal cannot be executed",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 9565,
+      "total_gas_fees": 637668,
+      "total_forward_fees": 44446,
+      "total_fees": 637668
+    },
+    "test invalid treasury config is rejected::trace#1": {
+      "test_name": "test invalid treasury config is rejected",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 91647,
+      "total_fees": 20601
+    },
+    "test fee reserve prevents draining treasury::trace#7": {
+      "test_name": "test fee reserve prevents draining treasury",
+      "trace_name": "Trace 7",
+      "tx_count": 1,
+      "total_gas_used": 5521,
+      "total_gas_fees": 368068,
+      "total_forward_fees": 44446,
+      "total_fees": 368068
+    },
+    "test invalid treasury config is rejected::trace#4": {
+      "test_name": "test invalid treasury config is rejected",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 2995,
+      "total_gas_fees": 199668,
+      "total_forward_fees": 574628,
+      "total_fees": 199668
+    },
+    "test non owner cannot approve proposal::trace#6": {
+      "test_name": "test non owner cannot approve proposal",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 4334,
+      "total_gas_fees": 288934,
+      "total_forward_fees": 44446,
+      "total_fees": 288934
+    },
+    "test cancelled proposal cannot be approved::trace#4": {
+      "test_name": "test cancelled proposal cannot be approved",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test execute proposal rejects insufficient inbound value::trace#4": {
+      "test_name": "test execute proposal rejects insufficient inbound value",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test non owner cannot create proposal::trace#5": {
+      "test_name": "test non owner cannot create proposal",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 4277,
+      "total_gas_fees": 285134,
+      "total_forward_fees": 65202,
+      "total_fees": 285134
+    },
+    "test owner count above maximum is rejected::trace#9": {
+      "test_name": "test owner count above maximum is rejected",
+      "trace_name": "Trace 9",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 90224,
+      "total_fees": 20601
+    },
+    "test create proposal rejects insufficient inbound value::trace#3": {
+      "test_name": "test create proposal rejects insufficient inbound value",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test owner creates payout proposal with creator auto approval::trace#3": {
+      "test_name": "test owner creates payout proposal with creator auto approval",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test executed proposal cannot execute twice::trace#8": {
+      "test_name": "test executed proposal cannot execute twice",
+      "trace_name": "Trace 8",
+      "tx_count": 1,
+      "total_gas_used": 5155,
+      "total_gas_fees": 343668,
+      "total_forward_fees": 44446,
+      "total_fees": 343668
+    },
+    "test non creator cannot cancel proposal::trace#6": {
+      "test_name": "test non creator cannot cancel proposal",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 5522,
+      "total_gas_fees": 368134,
+      "total_forward_fees": 44446,
+      "total_fees": 368134
+    },
+    "test plain TON deposit succeeds::trace#2": {
+      "test_name": "test plain TON deposit succeeds",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test create proposal rejects invalid amount and expiry::trace#3": {
+      "test_name": "test create proposal rejects invalid amount and expiry",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test duplicate approval is rejected::trace#6": {
+      "test_name": "test duplicate approval is rejected",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 5574,
+      "total_gas_fees": 371601,
+      "total_forward_fees": 44446,
+      "total_fees": 371601
+    },
+    "test executed proposal cannot be approved::trace#2": {
+      "test_name": "test executed proposal cannot be approved",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test execute after threshold sends TON payout::trace#4": {
+      "test_name": "test execute after threshold sends TON payout",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test executed proposal cannot be cancelled::trace#7": {
+      "test_name": "test executed proposal cannot be cancelled",
+      "trace_name": "Trace 7",
+      "tx_count": 2,
+      "total_gas_used": 9426,
+      "total_gas_fees": 628402,
+      "total_forward_fees": 88892,
+      "total_fees": 650623
+    },
+    "test approve proposal rejects insufficient inbound value::trace#6": {
+      "test_name": "test approve proposal rejects insufficient inbound value",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 4102,
+      "total_gas_fees": 273468,
+      "total_forward_fees": 44446,
+      "total_fees": 273468
+    },
+    "test cancel proposal rejects insufficient inbound value::trace#4": {
+      "test_name": "test cancel proposal rejects insufficient inbound value",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test creator cancels pending non executable proposal::trace#6": {
+      "test_name": "test creator cancels pending non executable proposal",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 7882,
+      "total_gas_fees": 525468,
+      "total_forward_fees": 44446,
+      "total_fees": 525468
+    },
+    "test duplicate approval is rejected::trace#2": {
+      "test_name": "test duplicate approval is rejected",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test executable proposal cannot be cancelled::trace#6": {
+      "test_name": "test executable proposal cannot be cancelled",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 9565,
+      "total_gas_fees": 637668,
+      "total_forward_fees": 44446,
+      "total_fees": 637668
+    },
+    "test expired proposal cannot be executed::trace#1": {
+      "test_name": "test expired proposal cannot be executed",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test non creator cannot cancel proposal::trace#2": {
+      "test_name": "test non creator cannot cancel proposal",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test create proposal accepts maximum expiry exactly::trace#4": {
+      "test_name": "test create proposal accepts maximum expiry exactly",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test owner count above maximum is rejected::trace#4": {
+      "test_name": "test owner count above maximum is rejected",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 90224,
+      "total_fees": 20601
+    },
+    "test owner creates payout proposal with creator auto approval::trace#4": {
+      "test_name": "test owner creates payout proposal with creator auto approval",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test plain TON deposit succeeds::trace#3": {
+      "test_name": "test plain TON deposit succeeds",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test creator cancels pending non executable proposal::trace#1": {
+      "test_name": "test creator cancels pending non executable proposal",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test plain TON deposit succeeds::trace#4": {
+      "test_name": "test plain TON deposit succeeds",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test plain TON deposit succeeds::trace#5": {
+      "test_name": "test plain TON deposit succeeds",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 44446,
+      "total_fees": 270268
+    },
+    "test executed proposal cannot be approved::trace#5": {
+      "test_name": "test executed proposal cannot be approved",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test cancelled proposal cannot be executed::trace#2": {
+      "test_name": "test cancelled proposal cannot be executed",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test second owner approves proposal::trace#1": {
+      "test_name": "test second owner approves proposal",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test expired proposal cannot be executed::trace#4": {
+      "test_name": "test expired proposal cannot be executed",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test create proposal rejects insufficient inbound value::trace#4": {
+      "test_name": "test create proposal rejects insufficient inbound value",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test cancelled proposal cannot be approved::trace#1": {
+      "test_name": "test cancelled proposal cannot be approved",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test execute after threshold sends TON payout::trace#3": {
+      "test_name": "test execute after threshold sends TON payout",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test non creator cannot cancel proposal::trace#3": {
+      "test_name": "test non creator cannot cancel proposal",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test executed proposal cannot execute twice::trace#7": {
+      "test_name": "test executed proposal cannot execute twice",
+      "trace_name": "Trace 7",
+      "tx_count": 2,
+      "total_gas_used": 9426,
+      "total_gas_fees": 628402,
+      "total_forward_fees": 88892,
+      "total_fees": 650623
+    },
+    "test second owner approves proposal::trace#4": {
+      "test_name": "test second owner approves proposal",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test execute proposal rejects insufficient inbound value::trace#2": {
+      "test_name": "test execute proposal rejects insufficient inbound value",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test executed proposal cannot be approved::trace#7": {
+      "test_name": "test executed proposal cannot be approved",
+      "trace_name": "Trace 7",
+      "tx_count": 2,
+      "total_gas_used": 9426,
+      "total_gas_fees": 628402,
+      "total_forward_fees": 88892,
+      "total_fees": 650623
+    },
+    "test owner creates payout proposal with creator auto approval::trace#5": {
+      "test_name": "test owner creates payout proposal with creator auto approval",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test create proposal rejects treasury self recipient::trace#2": {
+      "test_name": "test create proposal rejects treasury self recipient",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test execute payout action phase succeeds::trace#6": {
+      "test_name": "test execute payout action phase succeeds",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 9565,
+      "total_gas_fees": 637668,
+      "total_forward_fees": 44446,
+      "total_fees": 637668
+    },
+    "test cancelled proposal cannot be approved::trace#7": {
+      "test_name": "test cancelled proposal cannot be approved",
+      "trace_name": "Trace 7",
+      "tx_count": 1,
+      "total_gas_used": 5064,
+      "total_gas_fees": 337601,
+      "total_forward_fees": 44446,
+      "total_fees": 337601
+    },
+    "test cancel proposal rejects insufficient inbound value::trace#1": {
+      "test_name": "test cancel proposal rejects insufficient inbound value",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test cancelled proposal cannot be executed::trace#1": {
+      "test_name": "test cancelled proposal cannot be executed",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test create proposal rejects expiry beyond maximum::trace#2": {
+      "test_name": "test create proposal rejects expiry beyond maximum",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test owner count above maximum is rejected::trace#3": {
+      "test_name": "test owner count above maximum is rejected",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 90224,
+      "total_fees": 20601
+    },
+    "test cancelled proposal cannot be approved::trace#6": {
+      "test_name": "test cancelled proposal cannot be approved",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 7882,
+      "total_gas_fees": 525468,
+      "total_forward_fees": 44446,
+      "total_fees": 525468
+    },
+    "test fee reserve prevents draining treasury::trace#6": {
+      "test_name": "test fee reserve prevents draining treasury",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 9565,
+      "total_gas_fees": 637668,
+      "total_forward_fees": 44446,
+      "total_fees": 637668
+    },
+    "test cancelled proposal cannot be approved::trace#2": {
+      "test_name": "test cancelled proposal cannot be approved",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test create proposal rejects insufficient inbound value::trace#1": {
+      "test_name": "test create proposal rejects insufficient inbound value",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test cancelled proposal cannot be executed::trace#4": {
+      "test_name": "test cancelled proposal cannot be executed",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test execute after threshold sends TON payout::trace#6": {
+      "test_name": "test execute after threshold sends TON payout",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 9565,
+      "total_gas_fees": 637668,
+      "total_forward_fees": 44446,
+      "total_fees": 637668
+    },
+    "test owner count above maximum is rejected::trace#12": {
+      "test_name": "test owner count above maximum is rejected",
+      "trace_name": "Trace 12",
+      "tx_count": 1,
+      "total_gas_used": 1853,
+      "total_gas_fees": 123534,
+      "total_forward_fees": 784762,
+      "total_fees": 123534
+    },
+    "test plain TON deposit succeeds::trace#1": {
+      "test_name": "test plain TON deposit succeeds",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test create proposal rejects insufficient inbound value::trace#5": {
+      "test_name": "test create proposal rejects insufficient inbound value",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 4045,
+      "total_gas_fees": 269668,
+      "total_forward_fees": 65202,
+      "total_fees": 269668
+    },
+    "test executed proposal cannot be approved::trace#6": {
+      "test_name": "test executed proposal cannot be approved",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 9565,
+      "total_gas_fees": 637668,
+      "total_forward_fees": 44446,
+      "total_fees": 637668
+    },
+    "test unknown non empty body is rejected::trace#4": {
+      "test_name": "test unknown non empty body is rejected",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test cancel proposal rejects insufficient inbound value::trace#5": {
+      "test_name": "test cancel proposal rejects insufficient inbound value",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test create proposal accepts maximum expiry exactly::trace#3": {
+      "test_name": "test create proposal accepts maximum expiry exactly",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test create proposal rejects expiry beyond maximum::trace#1": {
+      "test_name": "test create proposal rejects expiry beyond maximum",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test executed proposal cannot execute twice::trace#5": {
+      "test_name": "test executed proposal cannot execute twice",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test executed proposal cannot be approved::trace#4": {
+      "test_name": "test executed proposal cannot be approved",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test second owner approves proposal::trace#6": {
+      "test_name": "test second owner approves proposal",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 9565,
+      "total_gas_fees": 637668,
+      "total_forward_fees": 44446,
+      "total_fees": 637668
+    },
+    "test non owner cannot approve proposal::trace#5": {
+      "test_name": "test non owner cannot approve proposal",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test create proposal rejects invalid amount and expiry::trace#5": {
+      "test_name": "test create proposal rejects invalid amount and expiry",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 4589,
+      "total_gas_fees": 305934,
+      "total_forward_fees": 44446,
+      "total_fees": 305934
+    },
+    "test expired proposal cannot be executed::trace#3": {
+      "test_name": "test expired proposal cannot be executed",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test unknown non empty body is rejected::trace#5": {
+      "test_name": "test unknown non empty body is rejected",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 1032,
+      "total_gas_fees": 68801,
+      "total_forward_fees": 44446,
+      "total_fees": 68801
+    },
+    "test executed proposal cannot be cancelled::trace#5": {
+      "test_name": "test executed proposal cannot be cancelled",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test executed proposal cannot be cancelled::trace#8": {
+      "test_name": "test executed proposal cannot be cancelled",
+      "trace_name": "Trace 8",
+      "tx_count": 1,
+      "total_gas_used": 5322,
+      "total_gas_fees": 354801,
+      "total_forward_fees": 44446,
+      "total_fees": 354801
+    },
+    "test invalid treasury config is rejected::trace#3": {
+      "test_name": "test invalid treasury config is rejected",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 4094,
+      "total_gas_fees": 272934,
+      "total_forward_fees": 596006,
+      "total_fees": 272934
+    },
+    "test unknown non empty body is rejected::trace#1": {
+      "test_name": "test unknown non empty body is rejected",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test expired proposal cannot be approved::trace#5": {
+      "test_name": "test expired proposal cannot be approved",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test creator cancels pending non executable proposal::trace#3": {
+      "test_name": "test creator cancels pending non executable proposal",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test non owner cannot approve proposal::trace#4": {
+      "test_name": "test non owner cannot approve proposal",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test non owner cannot approve proposal::trace#1": {
+      "test_name": "test non owner cannot approve proposal",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test non owner cannot create proposal::trace#4": {
+      "test_name": "test non owner cannot create proposal",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test zero threshold is rejected::trace#3": {
+      "test_name": "test zero threshold is rejected",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 4042,
+      "total_gas_fees": 269468,
+      "total_forward_fees": 595961,
+      "total_fees": 269468
+    },
+    "test execute allows exact reserve before inbound value::trace#3": {
+      "test_name": "test execute allows exact reserve before inbound value",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test execute allows exact reserve before inbound value::trace#5": {
+      "test_name": "test execute allows exact reserve before inbound value",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test creator cancels pending non executable proposal::trace#2": {
+      "test_name": "test creator cancels pending non executable proposal",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test executable proposal cannot be cancelled::trace#1": {
+      "test_name": "test executable proposal cannot be cancelled",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test execute allows exact reserve before inbound value::trace#6": {
+      "test_name": "test execute allows exact reserve before inbound value",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 9565,
+      "total_gas_fees": 637668,
+      "total_forward_fees": 44446,
+      "total_fees": 637668
+    },
+    "test execute before threshold fails::trace#3": {
+      "test_name": "test execute before threshold fails",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test executed proposal cannot execute twice::trace#4": {
+      "test_name": "test executed proposal cannot execute twice",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test fee reserve prevents draining treasury::trace#2": {
+      "test_name": "test fee reserve prevents draining treasury",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test non creator cannot cancel proposal::trace#5": {
+      "test_name": "test non creator cannot cancel proposal",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test non owner cannot create proposal::trace#1": {
+      "test_name": "test non owner cannot create proposal",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test owner count above maximum is rejected::trace#1": {
+      "test_name": "test owner count above maximum is rejected",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 90224,
+      "total_fees": 20601
+    },
+    "test cancelled proposal cannot be approved::trace#3": {
+      "test_name": "test cancelled proposal cannot be approved",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test zero threshold is rejected::trace#1": {
+      "test_name": "test zero threshold is rejected",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 92002,
+      "total_fees": 20601
+    },
+    "test executed proposal cannot be approved::trace#3": {
+      "test_name": "test executed proposal cannot be approved",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test executed proposal cannot execute twice::trace#1": {
+      "test_name": "test executed proposal cannot execute twice",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test non creator cannot cancel proposal::trace#1": {
+      "test_name": "test non creator cannot cancel proposal",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test duplicate approval is rejected::trace#4": {
+      "test_name": "test duplicate approval is rejected",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test cancelled proposal cannot be approved::trace#5": {
+      "test_name": "test cancelled proposal cannot be approved",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test executed proposal cannot be approved::trace#1": {
+      "test_name": "test executed proposal cannot be approved",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test duplicate approval is rejected::trace#3": {
+      "test_name": "test duplicate approval is rejected",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test deploy exposes treasury config::trace#2": {
+      "test_name": "test deploy exposes treasury config",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test executed proposal cannot execute twice::trace#6": {
+      "test_name": "test executed proposal cannot execute twice",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 9565,
+      "total_gas_fees": 637668,
+      "total_forward_fees": 44446,
+      "total_fees": 637668
+    },
+    "test cancel proposal rejects insufficient inbound value::trace#3": {
+      "test_name": "test cancel proposal rejects insufficient inbound value",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test executed proposal cannot be cancelled::trace#6": {
+      "test_name": "test executed proposal cannot be cancelled",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 9565,
+      "total_gas_fees": 637668,
+      "total_forward_fees": 44446,
+      "total_fees": 637668
+    },
+    "test cancelled proposal cannot be executed::trace#3": {
+      "test_name": "test cancelled proposal cannot be executed",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test approve proposal rejects insufficient inbound value::trace#3": {
+      "test_name": "test approve proposal rejects insufficient inbound value",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test create proposal rejects invalid amount and expiry::trace#6": {
+      "test_name": "test create proposal rejects invalid amount and expiry",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 4667,
+      "total_gas_fees": 311134,
+      "total_forward_fees": 65202,
+      "total_fees": 311134
+    },
+    "test execute proposal rejects insufficient inbound value::trace#1": {
+      "test_name": "test execute proposal rejects insufficient inbound value",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test expired proposal cannot be approved::trace#3": {
+      "test_name": "test expired proposal cannot be approved",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test fee reserve prevents draining treasury::trace#5": {
+      "test_name": "test fee reserve prevents draining treasury",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test executed proposal cannot be cancelled::trace#2": {
+      "test_name": "test executed proposal cannot be cancelled",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test non creator cannot cancel proposal::trace#4": {
+      "test_name": "test non creator cannot cancel proposal",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test owner count below minimum is rejected::trace#1": {
+      "test_name": "test owner count below minimum is rejected",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 91291,
+      "total_fees": 20601
+    },
+    "test second owner approves proposal::trace#5": {
+      "test_name": "test second owner approves proposal",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test deploy exposes treasury config::trace#3": {
+      "test_name": "test deploy exposes treasury config",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test zero threshold is rejected::trace#2": {
+      "test_name": "test zero threshold is rejected",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 92002,
+      "total_fees": 20601
+    },
+    "test approve proposal rejects insufficient inbound value::trace#4": {
+      "test_name": "test approve proposal rejects insufficient inbound value",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test expired proposal cannot be approved::trace#2": {
+      "test_name": "test expired proposal cannot be approved",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test create proposal rejects invalid amount and expiry::trace#1": {
+      "test_name": "test create proposal rejects invalid amount and expiry",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test execute before threshold fails::trace#1": {
+      "test_name": "test execute before threshold fails",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test expired proposal cannot be approved::trace#6": {
+      "test_name": "test expired proposal cannot be approved",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 5160,
+      "total_gas_fees": 344001,
+      "total_forward_fees": 44446,
+      "total_fees": 344002
+    },
+    "test cancelled proposal cannot be executed::trace#5": {
+      "test_name": "test cancelled proposal cannot be executed",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test execute before threshold fails::trace#2": {
+      "test_name": "test execute before threshold fails",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test execute proposal rejects insufficient inbound value::trace#7": {
+      "test_name": "test execute proposal rejects insufficient inbound value",
+      "trace_name": "Trace 7",
+      "tx_count": 1,
+      "total_gas_used": 4193,
+      "total_gas_fees": 279534,
+      "total_forward_fees": 44446,
+      "total_fees": 279534
+    },
+    "test expired proposal cannot be approved::trace#1": {
+      "test_name": "test expired proposal cannot be approved",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test create proposal rejects treasury self recipient::trace#3": {
+      "test_name": "test create proposal rejects treasury self recipient",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test expired proposal cannot be approved::trace#4": {
+      "test_name": "test expired proposal cannot be approved",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test non owner cannot approve proposal::trace#3": {
+      "test_name": "test non owner cannot approve proposal",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test executable proposal cannot be cancelled::trace#4": {
+      "test_name": "test executable proposal cannot be cancelled",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test execute proposal rejects insufficient inbound value::trace#3": {
+      "test_name": "test execute proposal rejects insufficient inbound value",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test owner count above maximum is rejected::trace#2": {
+      "test_name": "test owner count above maximum is rejected",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 90224,
+      "total_fees": 20601
+    },
+    "test owner count below minimum is rejected::trace#2": {
+      "test_name": "test owner count below minimum is rejected",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 1775,
+      "total_gas_fees": 118334,
+      "total_forward_fees": 574628,
+      "total_fees": 118334
+    },
+    "test owner count above maximum is rejected::trace#8": {
+      "test_name": "test owner count above maximum is rejected",
+      "trace_name": "Trace 8",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 90224,
+      "total_fees": 20601
+    },
+    "test creator cancels pending non executable proposal::trace#4": {
+      "test_name": "test creator cancels pending non executable proposal",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test creator cancels pending non executable proposal::trace#5": {
+      "test_name": "test creator cancels pending non executable proposal",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test executable proposal cannot be cancelled::trace#7": {
+      "test_name": "test executable proposal cannot be cancelled",
+      "trace_name": "Trace 7",
+      "tx_count": 1,
+      "total_gas_used": 5600,
+      "total_gas_fees": 373334,
+      "total_forward_fees": 44446,
+      "total_fees": 373334
+    },
+    "test second owner approves proposal::trace#2": {
+      "test_name": "test second owner approves proposal",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test deploy exposes treasury config::trace#1": {
+      "test_name": "test deploy exposes treasury config",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test execute after threshold sends TON payout::trace#5": {
+      "test_name": "test execute after threshold sends TON payout",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test unknown non empty body is rejected::trace#3": {
+      "test_name": "test unknown non empty body is rejected",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test cancel proposal rejects insufficient inbound value::trace#6": {
+      "test_name": "test cancel proposal rejects insufficient inbound value",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 4360,
+      "total_gas_fees": 290668,
+      "total_forward_fees": 44446,
+      "total_fees": 290668
+    },
+    "test deploy exposes treasury config::trace#4": {
+      "test_name": "test deploy exposes treasury config",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test approve proposal rejects insufficient inbound value::trace#5": {
+      "test_name": "test approve proposal rejects insufficient inbound value",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test executed proposal cannot execute twice::trace#2": {
+      "test_name": "test executed proposal cannot execute twice",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test fee reserve prevents draining treasury::trace#3": {
+      "test_name": "test fee reserve prevents draining treasury",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test executed proposal cannot execute twice::trace#3": {
+      "test_name": "test executed proposal cannot execute twice",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test approve proposal rejects insufficient inbound value::trace#1": {
+      "test_name": "test approve proposal rejects insufficient inbound value",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test executed proposal cannot be cancelled::trace#3": {
+      "test_name": "test executed proposal cannot be cancelled",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test cancelled proposal cannot be executed::trace#6": {
+      "test_name": "test cancelled proposal cannot be executed",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 7882,
+      "total_gas_fees": 525468,
+      "total_forward_fees": 44446,
+      "total_fees": 525468
+    },
+    "test execute after threshold sends TON payout::trace#2": {
+      "test_name": "test execute after threshold sends TON payout",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test expired proposal cannot be executed::trace#2": {
+      "test_name": "test expired proposal cannot be executed",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test create proposal accepts maximum expiry exactly::trace#2": {
+      "test_name": "test create proposal accepts maximum expiry exactly",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test executable proposal cannot be cancelled::trace#3": {
+      "test_name": "test executable proposal cannot be cancelled",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test execute payout action phase succeeds::trace#1": {
+      "test_name": "test execute payout action phase succeeds",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test expired proposal cannot be executed::trace#7": {
+      "test_name": "test expired proposal cannot be executed",
+      "trace_name": "Trace 7",
+      "tx_count": 1,
+      "total_gas_used": 5251,
+      "total_gas_fees": 350068,
+      "total_forward_fees": 44446,
+      "total_fees": 350069
+    },
+    "test executed proposal cannot be approved::trace#8": {
+      "test_name": "test executed proposal cannot be approved",
+      "trace_name": "Trace 8",
+      "tx_count": 1,
+      "total_gas_used": 5064,
+      "total_gas_fees": 337601,
+      "total_forward_fees": 44446,
+      "total_fees": 337601
+    },
+    "test duplicate approval is rejected::trace#1": {
+      "test_name": "test duplicate approval is rejected",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test execute payout action phase succeeds::trace#7": {
+      "test_name": "test execute payout action phase succeeds",
+      "trace_name": "Trace 7",
+      "tx_count": 2,
+      "total_gas_used": 9426,
+      "total_gas_fees": 628402,
+      "total_forward_fees": 88892,
+      "total_fees": 650623
+    },
+    "test execute allows exact reserve before inbound value::trace#4": {
+      "test_name": "test execute allows exact reserve before inbound value",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test execute allows exact reserve before inbound value::trace#7": {
+      "test_name": "test execute allows exact reserve before inbound value",
+      "trace_name": "Trace 7",
+      "tx_count": 2,
+      "total_gas_used": 9426,
+      "total_gas_fees": 628402,
+      "total_forward_fees": 88892,
+      "total_fees": 650623
+    },
+    "test create proposal rejects treasury self recipient::trace#4": {
+      "test_name": "test create proposal rejects treasury self recipient",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test create proposal rejects treasury self recipient::trace#5": {
+      "test_name": "test create proposal rejects treasury self recipient",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 4511,
+      "total_gas_fees": 300734,
+      "total_forward_fees": 65202,
+      "total_fees": 300734
+    },
+    "test execute proposal rejects insufficient inbound value::trace#6": {
+      "test_name": "test execute proposal rejects insufficient inbound value",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 9565,
+      "total_gas_fees": 637668,
+      "total_forward_fees": 44446,
+      "total_fees": 637668
+    },
+    "test create proposal rejects insufficient inbound value::trace#2": {
+      "test_name": "test create proposal rejects insufficient inbound value",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test execute payout action phase succeeds::trace#3": {
+      "test_name": "test execute payout action phase succeeds",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test execute payout action phase succeeds::trace#2": {
+      "test_name": "test execute payout action phase succeeds",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test executed proposal cannot be cancelled::trace#1": {
+      "test_name": "test executed proposal cannot be cancelled",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test executed proposal cannot be cancelled::trace#4": {
+      "test_name": "test executed proposal cannot be cancelled",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test cancelled proposal cannot be executed::trace#7": {
+      "test_name": "test cancelled proposal cannot be executed",
+      "trace_name": "Trace 7",
+      "tx_count": 1,
+      "total_gas_used": 5155,
+      "total_gas_fees": 343668,
+      "total_forward_fees": 44446,
+      "total_fees": 343668
+    },
+    "test non owner cannot approve proposal::trace#2": {
+      "test_name": "test non owner cannot approve proposal",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test execute allows exact reserve before inbound value::trace#2": {
+      "test_name": "test execute allows exact reserve before inbound value",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test execute proposal rejects insufficient inbound value::trace#5": {
+      "test_name": "test execute proposal rejects insufficient inbound value",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test non owner cannot create proposal::trace#2": {
+      "test_name": "test non owner cannot create proposal",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test duplicate approval is rejected::trace#5": {
+      "test_name": "test duplicate approval is rejected",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test fee reserve prevents draining treasury::trace#1": {
+      "test_name": "test fee reserve prevents draining treasury",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test owner count above maximum is rejected::trace#6": {
+      "test_name": "test owner count above maximum is rejected",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 90224,
+      "total_fees": 20601
+    },
+    "test cancel proposal rejects insufficient inbound value::trace#2": {
+      "test_name": "test cancel proposal rejects insufficient inbound value",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test create proposal rejects expiry beyond maximum::trace#3": {
+      "test_name": "test create proposal rejects expiry beyond maximum",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test create proposal rejects invalid amount and expiry::trace#2": {
+      "test_name": "test create proposal rejects invalid amount and expiry",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test owner count above maximum is rejected::trace#7": {
+      "test_name": "test owner count above maximum is rejected",
+      "trace_name": "Trace 7",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 90224,
+      "total_fees": 20601
+    },
+    "test owner count above maximum is rejected::trace#11": {
+      "test_name": "test owner count above maximum is rejected",
+      "trace_name": "Trace 11",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 90580,
+      "total_fees": 20601
+    },
+    "test executable proposal cannot be cancelled::trace#5": {
+      "test_name": "test executable proposal cannot be cancelled",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test owner count above maximum is rejected::trace#10": {
+      "test_name": "test owner count above maximum is rejected",
+      "trace_name": "Trace 10",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 90580,
+      "total_fees": 20601
+    },
+    "test owner creates payout proposal with creator auto approval::trace#1": {
+      "test_name": "test owner creates payout proposal with creator auto approval",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test create proposal rejects expiry beyond maximum::trace#4": {
+      "test_name": "test create proposal rejects expiry beyond maximum",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test execute after threshold sends TON payout::trace#7": {
+      "test_name": "test execute after threshold sends TON payout",
+      "trace_name": "Trace 7",
+      "tx_count": 2,
+      "total_gas_used": 9426,
+      "total_gas_fees": 628402,
+      "total_forward_fees": 88892,
+      "total_fees": 650623
+    },
+    "test invalid treasury config is rejected::trace#2": {
+      "test_name": "test invalid treasury config is rejected",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 91647,
+      "total_fees": 20601
+    },
+    "test execute after threshold sends TON payout::trace#1": {
+      "test_name": "test execute after threshold sends TON payout",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test non owner cannot create proposal::trace#3": {
+      "test_name": "test non owner cannot create proposal",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test owner count above maximum is rejected::trace#5": {
+      "test_name": "test owner count above maximum is rejected",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 90224,
+      "total_fees": 20601
+    },
+    "test unknown non empty body is rejected::trace#2": {
+      "test_name": "test unknown non empty body is rejected",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test create proposal accepts maximum expiry exactly::trace#5": {
+      "test_name": "test create proposal accepts maximum expiry exactly",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test owner creates payout proposal with creator auto approval::trace#2": {
+      "test_name": "test owner creates payout proposal with creator auto approval",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test second owner approves proposal::trace#3": {
+      "test_name": "test second owner approves proposal",
+      "trace_name": "Trace 3",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89869,
+      "total_fees": 20601
+    },
+    "test create proposal rejects invalid amount and expiry::trace#4": {
+      "test_name": "test create proposal rejects invalid amount and expiry",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test expired proposal cannot be executed::trace#5": {
+      "test_name": "test expired proposal cannot be executed",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test execute allows exact reserve before inbound value::trace#1": {
+      "test_name": "test execute allows exact reserve before inbound value",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test create proposal accepts maximum expiry exactly::trace#1": {
+      "test_name": "test create proposal accepts maximum expiry exactly",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test execute before threshold fails::trace#5": {
+      "test_name": "test execute before threshold fails",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 7909,
+      "total_gas_fees": 527268,
+      "total_forward_fees": 65202,
+      "total_fees": 527268
+    },
+    "test execute before threshold fails::trace#6": {
+      "test_name": "test execute before threshold fails",
+      "trace_name": "Trace 6",
+      "tx_count": 1,
+      "total_gas_used": 5329,
+      "total_gas_fees": 355268,
+      "total_forward_fees": 44446,
+      "total_fees": 355268
+    },
+    "test execute before threshold fails::trace#4": {
+      "test_name": "test execute before threshold fails",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test create proposal rejects treasury self recipient::trace#1": {
+      "test_name": "test create proposal rejects treasury self recipient",
+      "trace_name": "Trace 1",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test approve proposal rejects insufficient inbound value::trace#2": {
+      "test_name": "test approve proposal rejects insufficient inbound value",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test executable proposal cannot be cancelled::trace#2": {
+      "test_name": "test executable proposal cannot be cancelled",
+      "trace_name": "Trace 2",
+      "tx_count": 1,
+      "total_gas_used": 309,
+      "total_gas_fees": 20601,
+      "total_forward_fees": 89157,
+      "total_fees": 20601
+    },
+    "test fee reserve prevents draining treasury::trace#4": {
+      "test_name": "test fee reserve prevents draining treasury",
+      "trace_name": "Trace 4",
+      "tx_count": 1,
+      "total_gas_used": 4054,
+      "total_gas_fees": 270268,
+      "total_forward_fees": 596050,
+      "total_fees": 270268
+    },
+    "test create proposal rejects expiry beyond maximum::trace#5": {
+      "test_name": "test create proposal rejects expiry beyond maximum",
+      "trace_name": "Trace 5",
+      "tx_count": 1,
+      "total_gas_used": 4796,
+      "total_gas_fees": 319734,
+      "total_forward_fees": 65202,
+      "total_fees": 319734
+    }
+  }
+}
