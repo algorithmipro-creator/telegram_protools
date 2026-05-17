@@ -170,6 +170,10 @@ A pending proposal is stale when:
 proposal.configVersionAtCreation != storage.configVersion
 ```
 
+`Stale` is not a stored proposal status and cannot be supplied by any message. It is a derived execution and view condition computed only from `proposal.configVersionAtCreation` and `storage.configVersion`.
+
+Only successful `SetTreasuryConfigProposal` execution may increment `storage.configVersion`. No owner, non-owner, proposal creator, approver, UI, backend, or Telegram integration can directly mark a proposal stale.
+
 Stale pending proposals cannot be approved, executed, or cancelled. They remain visible through getters for auditability until Phase 4 defines retention and cleanup.
 
 Terminal proposals remain terminal:
@@ -541,6 +545,8 @@ Config execution tests:
 - old config proposal becomes stale after another config execution;
 - stale proposal cannot be approved;
 - stale proposal cannot be executed;
+- stale proposal cannot be created or forced by a message field;
+- stale status is derived from `configVersionAtCreation` and current `configVersion`, not stored as mutable proposal state;
 - stale proposal view status is `Stale`.
 
 Payout compatibility tests:
