@@ -178,6 +178,14 @@ fun Treasury.proposal(self, proposalId: uint64): ProposalView {
     return net.runGetMethod(self.address, "proposal", [proposalId]);
 }
 
+fun Treasury.proposalKind(self, proposalId: uint64): ProposalKind {
+    return net.runGetMethod(self.address, "proposal_kind", [proposalId]);
+}
+
+fun Treasury.proposalRequiredThreshold(self, proposalId: uint64): uint8 {
+    return net.runGetMethod(self.address, "proposal_required_threshold", [proposalId]);
+}
+
 fun Treasury.proposalConfigOwners(self, proposalId: uint64): map<address, uint8> {
     return net.runGetMethod(self.address, "proposal_config_owners", [proposalId]);
 }

@@ -257,6 +257,18 @@ get fun proposal(proposalId: uint64): ProposalView {
     return proposal.toView(storage.configVersion, storage.requiredThreshold(proposal.kind));
 }
 
+get fun proposal_kind(proposalId: uint64): ProposalKind {
+    val storage = lazy Storage.load();
+    val proposal = storage.mustGetProposal(proposalId);
+    return proposal.kind;
+}
+
+get fun proposal_required_threshold(proposalId: uint64): uint8 {
+    val storage = lazy Storage.load();
+    val proposal = storage.mustGetProposal(proposalId);
+    return storage.requiredThreshold(proposal.kind);
+}
+
 get fun proposal_config_owners(proposalId: uint64): map<address, uint8> {
     val storage = lazy Storage.load();
     val proposal = storage.mustGetProposal(proposalId);

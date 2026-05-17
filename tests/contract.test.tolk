@@ -343,6 +343,7 @@ get fun `test owner creates payout proposal with creator auto approval`() {
     val proposal = contract.proposal(0);
     expect(proposal.id).toEqual(0);
     expect(proposal.kind).toEqual(ProposalKind.PayoutTon);
+    expect(contract.proposalKind(0)).toEqual(ProposalKind.PayoutTon);
     expect(proposal.creator).toEqual(ownerA.address);
     expect(proposal.configVersionAtCreation).toEqual(0);
     expect(proposal.currentConfigVersion).toEqual(0);
@@ -350,6 +351,7 @@ get fun `test owner creates payout proposal with creator auto approval`() {
     expect(proposal.status).toEqual(ProposalViewStatus.Pending);
     expect(proposal.approvalCount).toEqual(1);
     expect(proposal.requiredApprovalCount).toEqual(2);
+    expect(contract.proposalRequiredThreshold(0)).toEqual(contract.payoutThreshold());
     expect(proposal.payoutRecipient).toEqual(outsider.address);
     expect(proposal.payoutAmount).toEqual(ton("0.20"));
     expect(proposal.recipient).toEqual(proposal.payoutRecipient);
@@ -386,6 +388,7 @@ get fun `test owner creates config proposal with creator auto approval`() {
     val proposal = contract.proposal(0);
     expect(proposal.id).toEqual(0);
     expect(proposal.kind).toEqual(ProposalKind.SetTreasuryConfig);
+    expect(contract.proposalKind(0)).toEqual(ProposalKind.SetTreasuryConfig);
     expect(proposal.creator).toEqual(ownerA.address);
     expect(proposal.configVersionAtCreation).toEqual(0);
     expect(proposal.currentConfigVersion).toEqual(0);
@@ -393,6 +396,7 @@ get fun `test owner creates config proposal with creator auto approval`() {
     expect(proposal.status).toEqual(ProposalViewStatus.Pending);
     expect(proposal.approvalCount).toEqual(1);
     expect(proposal.requiredApprovalCount).toEqual(contract.configThreshold());
+    expect(contract.proposalRequiredThreshold(0)).toEqual(contract.configThreshold());
     expect(proposal.newOwnerCount).toEqual(3);
     expect(proposal.newPayoutThreshold).toEqual(2);
     expect(proposal.newConfigThreshold).toEqual(2);
@@ -404,6 +408,68 @@ get fun `test owner creates config proposal with creator auto approval`() {
     expect(contract.payoutThreshold()).toEqual(2);
     expect(contract.configThreshold()).toEqual(2);
     expect(contract.configVersion()).toEqual(0);
+}
+
+get fun `test proposal kind getter returns payout kind for payout proposal`() {
+    val (contract, ownerA, _, _, outsider) = setupThreeOwnerTreasury(1, 3, true);
+
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    expect(contract.proposalKind(0)).toEqual(ProposalKind.PayoutTon);
+    expect(contract.hasApproval(0, ownerA.address)).toBeTrue();
+}
+
+get fun `test proposal kind getter returns config kind for config proposal`() {
+    val (contract, ownerA, ownerB, ownerC, _) = setupThreeOwnerTreasury(1, 3, true);
+    val newOwners = threeOwners(ownerA, ownerB, ownerC);
+
+    val res = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        1,
+        3,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(res).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    expect(contract.proposalKind(0)).toEqual(ProposalKind.SetTreasuryConfig);
+    expect(contract.hasApproval(0, ownerA.address)).toBeTrue();
+}
+
+get fun `test proposal required threshold getter returns payout threshold for payout proposal`() {
+    val (contract, ownerA, _, _, outsider) = setupThreeOwnerTreasury(1, 3, true);
+
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    expect(contract.proposalRequiredThreshold(0)).toEqual(contract.payoutThreshold());
+}
+
+get fun `test proposal required threshold getter returns config threshold for config proposal`() {
+    val (contract, ownerA, ownerB, ownerC, _) = setupThreeOwnerTreasury(1, 3, true);
+    val newOwners = threeOwners(ownerA, ownerB, ownerC);
+
+    val res = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        1,
+        3,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(res).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    expect(contract.proposalRequiredThreshold(0)).toEqual(contract.configThreshold());
 }
 
 get fun `test proposal config owners exposes proposed owner set`() {
