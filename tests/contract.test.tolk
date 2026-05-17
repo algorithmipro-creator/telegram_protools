@@ -352,6 +352,8 @@ get fun `test owner creates payout proposal with creator auto approval`() {
     expect(proposal.requiredApprovalCount).toEqual(2);
     expect(proposal.payoutRecipient).toEqual(outsider.address);
     expect(proposal.payoutAmount).toEqual(ton("0.20"));
+    expect(proposal.recipient).toEqual(proposal.payoutRecipient);
+    expect(proposal.amount).toEqual(proposal.payoutAmount);
     expect(proposal.newOwnerCount).toEqual(0);
     expect(proposal.newPayoutThreshold).toEqual(0);
     expect(proposal.newConfigThreshold).toEqual(0);
@@ -406,6 +408,8 @@ get fun `test second owner approves proposal`() {
     expect(proposal.requiredApprovalCount).toEqual(2);
     expect(proposal.payoutRecipient).toEqual(outsider.address);
     expect(proposal.payoutAmount).toEqual(ton("0.20"));
+    expect(proposal.recipient).toEqual(proposal.payoutRecipient);
+    expect(proposal.amount).toEqual(proposal.payoutAmount);
     expect(proposal.status).toEqual(ProposalViewStatus.Executable);
     expect(contract.hasApproval(0, ownerB.address)).toBeTrue();
 }
@@ -810,6 +814,88 @@ get fun `test execute payout action phase succeeds`() {
     expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Executed);
 }
 
+get fun `test stale proposal cannot be approved`() {
+    val (contract, ownerA, ownerB, _) = setupTreasuryWithSeededProposal(
+        ProposalStatus.Pending,
+        1,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+    );
+
+    val res = contract.sendApproveProposal(ownerB.address, 0, { value: MIN_APPROVE_VALUE });
+    expect(res).toHaveFailedTx<ApproveProposal>({
+        from: ownerB.address,
+        to: contract.address,
+        exitCode: Errors.ProposalStale,
+    });
+    expect(contract.proposal(0).approvalCount).toEqual(1);
+    expect(contract.hasApproval(0, ownerA.address)).toBeTrue();
+}
+
+get fun `test stale proposal cannot be executed`() {
+    val (contract, ownerA, _, _) = setupTreasuryWithSeededProposal(
+        ProposalStatus.Pending,
+        2,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+    );
+
+    val res = contract.sendExecuteProposal(ownerA.address, 0, { value: MIN_EXECUTE_VALUE });
+    expect(res).toHaveFailedTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalStale,
+    });
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Stale);
+}
+
+get fun `test stale proposal cannot be cancelled`() {
+    val (contract, ownerA, _, _) = setupTreasuryWithSeededProposal(
+        ProposalStatus.Pending,
+        1,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+    );
+
+    val res = contract.sendCancelProposal(ownerA.address, 0, { value: MIN_CANCEL_VALUE });
+    expect(res).toHaveFailedTx<CancelProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalStale,
+    });
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Stale);
+}
+
+get fun `test stale view status has priority over expired and executable pending proposal`() {
+    val (contract, _, _, _) = setupTreasuryWithSeededProposal(
+        ProposalStatus.Pending,
+        2,
+        blockchain.now() - 1,
+    );
+
+    val proposal = contract.proposal(0);
+    expect(proposal.status).toEqual(ProposalViewStatus.Stale);
+    expect(proposal.approvalCount).toEqual(2);
+    expect(proposal.requiredApprovalCount).toEqual(2);
+}
+
+get fun `test executed proposal remains executed even if stale`() {
+    val (contract, _, _, _) = setupTreasuryWithSeededProposal(
+        ProposalStatus.Executed,
+        2,
+        blockchain.now() - 1,
+    );
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Executed);
+}
+
+get fun `test cancelled proposal remains cancelled even if stale`() {
+    val (contract, _, _, _) = setupTreasuryWithSeededProposal(
+        ProposalStatus.Cancelled,
+        1,
+        blockchain.now() - 1,
+    );
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Cancelled);
+}
+
 fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
     val ownerA = testTreasury("ownerA");
     val ownerB = testTreasury("ownerB");
@@ -864,6 +950,62 @@ fun setupTreasuryMutableConfig(): (Treasury, TestTreasury, TestTreasury, TestTre
     expect(res).toHaveSuccessfulDeploy({ to: contract.address });
 
     return (contract, ownerA, ownerB, outsider);
+}
+
+fun setupTreasuryWithSeededProposal(
+    status: ProposalStatus,
+    approvalCount: uint8,
+    expiresAt: uint32,
+): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
+    val ownerA = testTreasury("seededOwnerA");
+    val ownerB = testTreasury("seededOwnerB");
+    val recipient = testTreasury("seededRecipient");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_KEY_VALUE);
+    owners.set(ownerB.address, OWNER_KEY_VALUE);
+
+    val proposal = Proposal {
+        id: 0,
+        kind: ProposalKind.PayoutTon,
+        creator: ownerA.address,
+        createdAt: blockchain.now() as uint32,
+        expiresAt,
+        configVersionAtCreation: 0,
+        status,
+        approvalCount,
+        payload: PayoutTonPayload {
+            recipient: recipient.address,
+            amount: ton("0.20"),
+        },
+    };
+
+    var proposals: map<uint64, Cell<Proposal>> = [];
+    proposals.set(0, proposal.toCell());
+
+    var approvals: map<uint256, uint8> = [];
+    approvals.set(approvalKey(0, ownerA.address), APPROVAL_KEY_VALUE);
+    if (approvalCount >= 2) {
+        approvals.set(approvalKey(0, ownerB.address), APPROVAL_KEY_VALUE);
+    }
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 2,
+        configThreshold: 2,
+        configThresholdMutable: false,
+        configVersion: 1,
+        proposalSeqno: 1,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals,
+        approvals,
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveSuccessfulDeploy({ to: contract.address });
+
+    return (contract, ownerA, ownerB, recipient);
 }
 
 fun createProposal(contract: Treasury, creator: TestTreasury, recipient: address, amount: coins) {
