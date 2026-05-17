@@ -12,6 +12,7 @@ Track A hardening evidence:
 - Source verification dry-run: `docs/research/track-a-source-verification.md`.
 - Gas/fee baseline: `docs/research/track-a-gas-fee-baseline.md`.
 - Storage reserve policy: `docs/research/track-a-storage-reserve-policy.md`.
+- Proposal pruning design: `docs/superpowers/specs/2026-05-18-treasury-proposal-pruning-design.md`.
 - Security review readiness checklist: `docs/research/track-a-security-checklist.md`.
 
 This document tracks the broader TreasuryFlow security model. The Track A Treasury Core v0.1 evidence currently covers TON payout proposals plus typed governance/config proposals for owners, `payoutThreshold`, `configThreshold`, and `feeReserve`; Splitter, Telegram, backend/indexer, Track B, and mainnet remain product-wide or future scope unless explicitly listed as Track A Core evidence.
@@ -46,6 +47,7 @@ This document tracks the broader TreasuryFlow security model. The Track A Treasu
 | Recipient sanity | Payout recipient cannot be the Treasury contract itself |
 | Execute action success | Successful execution emits the intended payout action and child transfer evidence |
 | On-chain history retention | Bounded retention or cleanup/indexer policy is required before mainnet; Core v0.1 still retains proposal/approval history on-chain |
+| Pruning safety | Future pruning must be owner-only in v1, must not remove pending or executable current-version proposals, and must not leave orphan approvals |
 | Payload transparency | Payload is decoded or marked with a warning |
 | Replay protection | Proposal/action cannot be reused after terminal status |
 | Current-config authority | Config changes require approval from current owners under the current config threshold |
@@ -62,6 +64,7 @@ This document tracks the broader TreasuryFlow security model. The Track A Treasu
 | Single owner drain | N-of-M approval threshold |
 | Replay | nonce, status, terminal proposal states |
 | Storage exhaustion | reserve sizing evidence; bounded retention or cleanup/indexer policy remains a mainnet blocker |
+| Prune abuse | Phase 4 design limits pruning to current owners and only to Executed, Cancelled, Expired, or Stale proposals |
 | Owner-set growth | hard-coded `MAX_OWNER_COUNT = 10` and deployment-time config validation |
 | Underfunded state-changing message | per-operation minimum inbound value checks |
 | Stale long-lived proposal | maximum proposal expiry window |
