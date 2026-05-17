@@ -11,7 +11,10 @@ get fun `test deploy exposes treasury config`() {
     val (contract, ownerA, ownerB, _) = setupTreasury();
 
     expect(contract.ownerCount()).toEqual(2);
-    expect(contract.threshold()).toEqual(2);
+    expect(contract.payoutThreshold()).toEqual(2);
+    expect(contract.configThreshold()).toEqual(2);
+    expect(contract.configThresholdMutable()).toBeFalse();
+    expect(contract.configVersion()).toEqual(0);
     expect(contract.proposalSeqno()).toEqual(0);
     expect(contract.feeReserve()).toEqual(DEFAULT_FEE_RESERVE);
     expect(contract.isOwner(ownerA.address)).toBeTrue();
@@ -181,6 +184,70 @@ get fun `test zero threshold is rejected`() {
         to: contract.address,
         exitCode: Errors.InvalidThreshold,
     });
+}
+
+get fun `test payout threshold above config threshold is rejected`() {
+    val ownerA = testTreasury("payoutAboveConfigA");
+    val ownerB = testTreasury("payoutAboveConfigB");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_KEY_VALUE);
+    owners.set(ownerB.address, OWNER_KEY_VALUE);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 2,
+        configThreshold: 1,
+        configThresholdMutable: false,
+        configVersion: 0,
+        proposalSeqno: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+        approvals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveFailedTx({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidConfigThreshold,
+    });
+}
+
+get fun `test config threshold above owner count is rejected`() {
+    val ownerA = testTreasury("configAboveOwnerA");
+    val ownerB = testTreasury("configAboveOwnerB");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_KEY_VALUE);
+    owners.set(ownerB.address, OWNER_KEY_VALUE);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 2,
+        configThreshold: 3,
+        configThresholdMutable: false,
+        configVersion: 0,
+        proposalSeqno: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+        approvals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveFailedTx({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidConfigThreshold,
+    });
+}
+
+get fun `test config threshold mutable true deploy succeeds`() {
+    val (contract, _, _, _) = setupTreasuryMutableConfig();
+    expect(contract.configThresholdMutable()).toBeTrue();
+    expect(contract.configVersion()).toEqual(0);
 }
 
 get fun `test owner creates payout proposal with creator auto approval`() {
@@ -670,6 +737,34 @@ fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
         threshold: 2,
+        proposalSeqno: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+        approvals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveSuccessfulDeploy({ to: contract.address });
+
+    return (contract, ownerA, ownerB, outsider);
+}
+
+fun setupTreasuryMutableConfig(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
+    val ownerA = testTreasury("mutableOwnerA");
+    val ownerB = testTreasury("mutableOwnerB");
+    val outsider = testTreasury("mutableOutsider");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_KEY_VALUE);
+    owners.set(ownerB.address, OWNER_KEY_VALUE);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 2,
+        configThreshold: 2,
+        configThresholdMutable: true,
+        configVersion: 0,
         proposalSeqno: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
