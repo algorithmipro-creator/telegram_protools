@@ -53,6 +53,51 @@ fun onInternalMessage(in: InMessage) {
             storage.proposalSeqno = proposalId + 1;
             storage.save();
         }
+        CreateConfigProposal => {
+            var storage = lazy Storage.load();
+            storage.assertValidConfig();
+            requireMinValue(in.valueCoins, MIN_CREATE_VALUE);
+            storage.assertOwner(in.senderAddress);
+            val now = blockchain.now();
+            assert (msg.expiresAt > now) throw Errors.InvalidExpiry;
+            assert (msg.expiresAt <= now + MAX_EXPIRY_SECONDS) throw Errors.InvalidExpiry;
+            storage.assertValidProposedConfig(
+                msg.newOwnerCount,
+                msg.newPayoutThreshold,
+                msg.newConfigThreshold,
+                msg.newFeeReserve,
+                msg.newOwners,
+            );
+
+            val proposalId = storage.proposalSeqno;
+            val proposal = Proposal {
+                id: proposalId,
+                kind: ProposalKind.SetTreasuryConfig,
+                creator: in.senderAddress,
+                createdAt: now as uint32,
+                expiresAt: msg.expiresAt,
+                configVersionAtCreation: storage.configVersion,
+                status: ProposalStatus.Pending,
+                approvalCount: 1,
+                payload: SetTreasuryConfigPayload {
+                    newOwnerCount: msg.newOwnerCount,
+                    newPayoutThreshold: msg.newPayoutThreshold,
+                    newConfigThreshold: msg.newConfigThreshold,
+                    newFeeReserve: msg.newFeeReserve,
+                    newOwners: msg.newOwners,
+                },
+            };
+
+            storage.proposals.set(proposalId, proposal.toCell());
+            storage
+                .approvals
+                .set(
+                    approvalKey(proposalId, in.senderAddress),
+                    APPROVAL_KEY_VALUE,
+                );
+            storage.proposalSeqno = proposalId + 1;
+            storage.save();
+        }
         ApproveProposal => {
             var storage = lazy Storage.load();
             storage.assertValidConfig();

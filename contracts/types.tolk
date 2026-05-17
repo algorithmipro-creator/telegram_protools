@@ -137,14 +137,38 @@ fun Storage.assertValidConfig(self) {
     assert (self.feeReserve >= MIN_FEE_RESERVE) throw Errors.InvalidFeeReserve;
 }
 
-fun Storage.ownerMapCount(self): int {
+fun Storage.assertValidProposedConfig(
+    self,
+    newOwnerCount: uint8,
+    newPayoutThreshold: uint8,
+    newConfigThreshold: uint8,
+    newFeeReserve: coins,
+    newOwners: map<address, uint8>,
+) {
+    assert (newOwnerCount >= MIN_OWNER_COUNT) throw Errors.InvalidOwnerCount;
+    assert (newOwnerCount <= MAX_OWNER_COUNT) throw Errors.InvalidOwnerCount;
+    assert (ownerMapCount(newOwners) == newOwnerCount) throw Errors.DuplicateOwner;
+    assert (newPayoutThreshold > 0) throw Errors.InvalidPayoutThreshold;
+    assert (newPayoutThreshold <= newConfigThreshold) throw Errors.InvalidConfigThreshold;
+    assert (newConfigThreshold <= newOwnerCount) throw Errors.InvalidConfigThreshold;
+    assert (newFeeReserve >= MIN_FEE_RESERVE) throw Errors.InvalidFeeReserve;
+    if (!self.configThresholdMutable) {
+        assert (newConfigThreshold == self.configThreshold) throw Errors.ConfigThresholdLocked;
+    }
+}
+
+fun ownerMapCount(owners: map<address, uint8>): int {
     var count = 0;
-    var entry = self.owners.findFirst();
+    var entry = owners.findFirst();
     while (entry.isFound) {
         count += 1;
-        entry = self.owners.iterateNext(entry);
+        entry = owners.iterateNext(entry);
     }
     return count;
+}
+
+fun Storage.ownerMapCount(self): int {
+    return ownerMapCount(self.owners);
 }
 
 fun Storage.isOwner(self, owner: address): bool {
@@ -268,4 +292,18 @@ struct (0x54524604) CancelProposal {
     proposalId: uint64
 }
 
-type TreasuryMessage = CreatePayoutProposal | ApproveProposal | ExecuteProposal | CancelProposal
+struct (0x54524605) CreateConfigProposal {
+    newOwnerCount: uint8
+    newPayoutThreshold: uint8
+    newConfigThreshold: uint8
+    newFeeReserve: coins
+    newOwners: map<address, uint8>
+    expiresAt: uint32
+}
+
+type TreasuryMessage =
+    | CreatePayoutProposal
+    | ApproveProposal
+    | ExecuteProposal
+    | CancelProposal
+    | CreateConfigProposal

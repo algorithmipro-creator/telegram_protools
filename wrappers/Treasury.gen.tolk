@@ -104,6 +104,33 @@ fun Treasury.sendCancelProposal(
     return net.send(from, genericMsg);
 }
 
+fun Treasury.sendCreateConfigProposal(
+    self,
+    from: address,
+    newOwnerCount: uint8,
+    newPayoutThreshold: uint8,
+    newConfigThreshold: uint8,
+    newFeeReserve: coins,
+    newOwners: map<address, uint8>,
+    expiresAt: uint32,
+    config: SendParams = {},
+): SendResultList {
+    val genericMsg = createMessage({
+        bounce: config.bounce,
+        value: config.value,
+        dest: self.address,
+        body: CreateConfigProposal {
+            newOwnerCount,
+            newPayoutThreshold,
+            newConfigThreshold,
+            newFeeReserve,
+            newOwners,
+            expiresAt,
+        },
+    });
+    return net.send(from, genericMsg);
+}
+
 /// Send message to the contract with a custom body cell
 fun Treasury.sendAny(self, from: address, body: cell, config: SendParams = {}): SendResultList {
     val genericMsg = createMessage({

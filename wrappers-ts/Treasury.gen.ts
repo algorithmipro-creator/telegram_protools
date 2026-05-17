@@ -758,6 +758,68 @@ export const CancelProposal = {
     }
 }
 
+/**
+ > struct (0x54524605) CreateConfigProposal {
+ >     newOwnerCount: uint8
+ >     newPayoutThreshold: uint8
+ >     newConfigThreshold: uint8
+ >     newFeeReserve: coins
+ >     newOwners: map<address, uint8>
+ >     expiresAt: uint32
+ > }
+ */
+export interface CreateConfigProposal {
+    readonly $: 'CreateConfigProposal'
+    newOwnerCount: uint8
+    newPayoutThreshold: uint8
+    newConfigThreshold: uint8
+    newFeeReserve: coins
+    newOwners: c.Dictionary<c.Address, uint8>
+    expiresAt: uint32
+}
+
+export const CreateConfigProposal = {
+    PREFIX: 0x54524605,
+
+    create(args: {
+        newOwnerCount: uint8
+        newPayoutThreshold: uint8
+        newConfigThreshold: uint8
+        newFeeReserve: coins
+        newOwners: c.Dictionary<c.Address, uint8>
+        expiresAt: uint32
+    }): CreateConfigProposal {
+        return {
+            $: 'CreateConfigProposal',
+            ...args
+        }
+    },
+    fromSlice(s: c.Slice): CreateConfigProposal {
+        loadAndCheckPrefix32(s, 0x54524605, 'CreateConfigProposal');
+        return {
+            $: 'CreateConfigProposal',
+            newOwnerCount: s.loadUintBig(8),
+            newPayoutThreshold: s.loadUintBig(8),
+            newConfigThreshold: s.loadUintBig(8),
+            newFeeReserve: s.loadCoins(),
+            newOwners: c.Dictionary.load<c.Address, uint8>(c.Dictionary.Keys.Address(), c.Dictionary.Values.BigUint(8), s),
+            expiresAt: s.loadUintBig(32),
+        }
+    },
+    store(self: CreateConfigProposal, b: c.Builder): void {
+        b.storeUint(0x54524605, 32);
+        b.storeUint(self.newOwnerCount, 8);
+        b.storeUint(self.newPayoutThreshold, 8);
+        b.storeUint(self.newConfigThreshold, 8);
+        b.storeCoins(self.newFeeReserve);
+        b.storeDict<c.Address, uint8>(self.newOwners, c.Dictionary.Keys.Address(), c.Dictionary.Values.BigUint(8));
+        b.storeUint(self.expiresAt, 32);
+    },
+    toCell(self: CreateConfigProposal): c.Cell {
+        return makeCellFrom<CreateConfigProposal>(self, CreateConfigProposal.store);
+    }
+}
+
 // ————————————————————————————————————————————
 //    class Treasury
 //
@@ -797,7 +859,7 @@ function calculateDeployedAddress(code: c.Cell, data: c.Cell, options: DeployedA
 }
 
 export class Treasury implements c.Contract {
-    static CodeCell = c.Cell.fromBase64('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');
+    static CodeCell = c.Cell.fromBase64('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');
 
     static Errors = {
         'Errors.NotOwner': 128,
@@ -818,6 +880,7 @@ export class Treasury implements c.Contract {
         'Errors.InsufficientMessageValue': 144,
         'Errors.InvalidPayoutThreshold': 145,
         'Errors.InvalidConfigThreshold': 146,
+        'Errors.ConfigThresholdLocked': 147,
         'Errors.InvalidFeeReserve': 148,
         'Errors.ProposalStale': 149,
         'Errors.InvalidProposalKind': 150,
@@ -881,6 +944,17 @@ export class Treasury implements c.Contract {
         return CancelProposal.toCell(CancelProposal.create(body));
     }
 
+    static createCellOfCreateConfigProposal(body: {
+        newOwnerCount: uint8
+        newPayoutThreshold: uint8
+        newConfigThreshold: uint8
+        newFeeReserve: coins
+        newOwners: c.Dictionary<c.Address, uint8>
+        expiresAt: uint32
+    }) {
+        return CreateConfigProposal.toCell(CreateConfigProposal.create(body));
+    }
+
     async sendDeploy(provider: ContractProvider, via: Sender, msgValue: coins, extraOptions?: ExtraSendOptions) {
         return provider.internal(via, {
             value: msgValue,
@@ -927,6 +1001,21 @@ export class Treasury implements c.Contract {
         return provider.internal(via, {
             value: msgValue,
             body: CancelProposal.toCell(CancelProposal.create(body)),
+            ...extraOptions
+        });
+    }
+
+    async sendCreateConfigProposal(provider: ContractProvider, via: Sender, msgValue: coins, body: {
+        newOwnerCount: uint8
+        newPayoutThreshold: uint8
+        newConfigThreshold: uint8
+        newFeeReserve: coins
+        newOwners: c.Dictionary<c.Address, uint8>
+        expiresAt: uint32
+    }, extraOptions?: ExtraSendOptions) {
+        return provider.internal(via, {
+            value: msgValue,
+            body: CreateConfigProposal.toCell(CreateConfigProposal.create(body)),
             ...extraOptions
         });
     }
