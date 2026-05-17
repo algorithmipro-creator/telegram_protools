@@ -1110,7 +1110,7 @@ get fun `test deadlock rejects owner removal that would make final configThresho
         ownerA.address,
         2,
         2,
-        2,
+        3,
         DEFAULT_FEE_RESERVE,
         newOwners,
         blockchain.now() + DEFAULT_EXPIRY_SECONDS,
@@ -1120,7 +1120,7 @@ get fun `test deadlock rejects owner removal that would make final configThresho
     expect(res).toHaveFailedTx<CreateConfigProposal>({
         from: ownerA.address,
         to: contract.address,
-        exitCode: Errors.ConfigThresholdLocked,
+        exitCode: Errors.InvalidConfigThreshold,
     });
     expect(contract.isOwner(ownerC.address)).toBeTrue();
 }
