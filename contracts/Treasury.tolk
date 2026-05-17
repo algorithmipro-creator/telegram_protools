@@ -47,7 +47,7 @@ fun onInternalMessage(in: InMessage) {
             storage
                 .approvals
                 .set(
-                    approvalKey(proposalId, in.senderAddress),
+                    approvalKey(proposal.kind, proposalId, in.senderAddress),
                     APPROVAL_KEY_VALUE,
                 );
             storage.proposalSeqno = proposalId + 1;
@@ -92,7 +92,7 @@ fun onInternalMessage(in: InMessage) {
             storage
                 .approvals
                 .set(
-                    approvalKey(proposalId, in.senderAddress),
+                    approvalKey(proposal.kind, proposalId, in.senderAddress),
                     APPROVAL_KEY_VALUE,
                 );
             storage.proposalSeqno = proposalId + 1;
@@ -110,7 +110,7 @@ fun onInternalMessage(in: InMessage) {
             assert (!proposal.isStale(storage.configVersion)) throw Errors.ProposalStale;
             assert (!proposal.isExpired()) throw Errors.ProposalExpired;
 
-            val key = approvalKey(msg.proposalId, in.senderAddress);
+            val key = approvalKey(proposal.kind, msg.proposalId, in.senderAddress);
             assert (!storage.approvals.exists(key)) throw Errors.AlreadyApproved;
 
             storage.approvals.set(key, APPROVAL_KEY_VALUE);
@@ -229,5 +229,6 @@ get fun proposal(proposalId: uint64): ProposalView {
 
 get fun has_approval(proposalId: uint64, owner: address): bool {
     val storage = lazy Storage.load();
-    return storage.approvals.exists(approvalKey(proposalId, owner));
+    val proposal = storage.mustGetProposal(proposalId);
+    return storage.approvals.exists(approvalKey(proposal.kind, proposalId, owner));
 }

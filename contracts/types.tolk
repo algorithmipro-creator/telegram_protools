@@ -190,8 +190,13 @@ fun Storage.requiredThreshold(self, kind: ProposalKind): uint8 {
     return 0;
 }
 
-fun approvalKey(proposalId: uint64, owner: address): uint256 {
-    return beginCell().storeUint(proposalId, 64).storeAddress(owner).endCell().hash();
+fun approvalKey(kind: ProposalKind, proposalId: uint64, owner: address): uint256 {
+    return beginCell()
+        .storeUint(kind as int, 8)
+        .storeUint(proposalId, 64)
+        .storeAddress(owner)
+        .endCell()
+        .hash();
 }
 
 fun Storage.mustGetProposal(self, proposalId: uint64): Proposal {

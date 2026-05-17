@@ -1115,6 +1115,13 @@ get fun `test stale proposal cannot be approved`() {
     expect(contract.hasApproval(0, ownerA.address)).toBeTrue();
 }
 
+get fun `test approval key includes proposal kind`() {
+    val (contract, ownerA, _, _) = setupTreasuryWithLegacyIdOnlyApproval();
+
+    expect(contract.proposal(0).kind).toEqual(ProposalKind.PayoutTon);
+    expect(contract.hasApproval(0, ownerA.address)).toBeFalse();
+}
+
 get fun `test stale proposal cannot be executed`() {
     val (contract, ownerA, _, _) = setupTreasuryWithSeededProposal(
         ProposalStatus.Pending,
@@ -1280,9 +1287,9 @@ fun setupTreasuryWithSeededProposal(
     proposals.set(0, proposal.toCell());
 
     var approvals: map<uint256, uint8> = [];
-    approvals.set(approvalKey(0, ownerA.address), APPROVAL_KEY_VALUE);
+    approvals.set(approvalKey(proposal.kind, 0, ownerA.address), APPROVAL_KEY_VALUE);
     if (approvalCount >= 2) {
-        approvals.set(approvalKey(0, ownerB.address), APPROVAL_KEY_VALUE);
+        approvals.set(approvalKey(proposal.kind, 0, ownerB.address), APPROVAL_KEY_VALUE);
     }
 
     val contract = Treasury.fromStorage(Storage {
@@ -1302,6 +1309,59 @@ fun setupTreasuryWithSeededProposal(
     expect(res).toHaveSuccessfulDeploy({ to: contract.address });
 
     return (contract, ownerA, ownerB, recipient);
+}
+
+fun setupTreasuryWithLegacyIdOnlyApproval(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
+    val ownerA = testTreasury("legacyApprovalOwnerA");
+    val ownerB = testTreasury("legacyApprovalOwnerB");
+    val recipient = testTreasury("legacyApprovalRecipient");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_KEY_VALUE);
+    owners.set(ownerB.address, OWNER_KEY_VALUE);
+
+    val proposal = Proposal {
+        id: 0,
+        kind: ProposalKind.PayoutTon,
+        creator: ownerA.address,
+        createdAt: blockchain.now() as uint32,
+        expiresAt: blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        configVersionAtCreation: 0,
+        status: ProposalStatus.Pending,
+        approvalCount: 1,
+        payload: PayoutTonPayload {
+            recipient: recipient.address,
+            amount: ton("0.20"),
+        },
+    };
+
+    var proposals: map<uint64, Cell<Proposal>> = [];
+    proposals.set(0, proposal.toCell());
+
+    var approvals: map<uint256, uint8> = [];
+    approvals.set(legacyIdOnlyApprovalKey(0, ownerA.address), APPROVAL_KEY_VALUE);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 2,
+        configThreshold: 2,
+        configThresholdMutable: false,
+        configVersion: 0,
+        proposalSeqno: 1,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals,
+        approvals,
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveSuccessfulDeploy({ to: contract.address });
+
+    return (contract, ownerA, ownerB, recipient);
+}
+
+fun legacyIdOnlyApprovalKey(proposalId: uint64, owner: address): uint256 {
+    return beginCell().storeUint(proposalId, 64).storeAddress(owner).endCell().hash();
 }
 
 fun createProposal(contract: Treasury, creator: TestTreasury, recipient: address, amount: coins) {
