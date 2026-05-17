@@ -76,7 +76,9 @@ fun onInternalMessage(in: InMessage) {
             var proposal = storage.mustGetProposal(msg.proposalId);
             assert (proposal.status == ProposalStatus.Pending) throw Errors.ProposalNotPending;
             assert (!proposal.isExpired()) throw Errors.ProposalExpired;
-            assert (proposal.approvalCount >= storage.payoutThreshold) throw Errors.ThresholdNotReached;
+            assert (
+                proposal.approvalCount >= storage.payoutThreshold
+            ) throw Errors.ThresholdNotReached;
             val availableBalance = contract.getOriginalBalance() - in.valueCoins;
             assert (
                 availableBalance >= proposal.amount + storage.feeReserve
@@ -98,7 +100,9 @@ fun onInternalMessage(in: InMessage) {
             assert (proposal.status == ProposalStatus.Pending) throw Errors.ProposalNotPending;
             assert (!proposal.isExpired()) throw Errors.ProposalExpired;
             assert (proposal.creator == in.senderAddress) throw Errors.NotCreator;
-            assert (proposal.approvalCount < storage.payoutThreshold) throw Errors.AlreadyExecutable;
+            assert (
+                proposal.approvalCount < storage.payoutThreshold
+            ) throw Errors.AlreadyExecutable;
 
             proposal.status = ProposalStatus.Cancelled;
             storage.proposals.set(msg.proposalId, proposal.toCell());

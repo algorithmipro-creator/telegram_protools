@@ -201,6 +201,35 @@ get fun `test zero threshold is rejected`() {
     });
 }
 
+get fun `test config threshold zero is rejected`() {
+    val ownerA = testTreasury("zeroConfigThresholdA");
+    val ownerB = testTreasury("zeroConfigThresholdB");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_KEY_VALUE);
+    owners.set(ownerB.address, OWNER_KEY_VALUE);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 1,
+        configThreshold: 0,
+        configThresholdMutable: false,
+        configVersion: 0,
+        proposalSeqno: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+        approvals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveFailedTx({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidConfigThreshold,
+    });
+}
+
 get fun `test payout threshold above config threshold is rejected`() {
     val ownerA = testTreasury("payoutAboveConfigA");
     val ownerB = testTreasury("payoutAboveConfigB");
@@ -256,6 +285,35 @@ get fun `test config threshold above owner count is rejected`() {
         from: ownerA.address,
         to: contract.address,
         exitCode: Errors.InvalidConfigThreshold,
+    });
+}
+
+get fun `test fee reserve below minimum is rejected`() {
+    val ownerA = testTreasury("feeReserveBelowA");
+    val ownerB = testTreasury("feeReserveBelowB");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_KEY_VALUE);
+    owners.set(ownerB.address, OWNER_KEY_VALUE);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 2,
+        configThreshold: 2,
+        configThresholdMutable: false,
+        configVersion: 0,
+        proposalSeqno: 0,
+        feeReserve: MIN_FEE_RESERVE - 1,
+        owners,
+        proposals: [],
+        approvals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveFailedTx({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidFeeReserve,
     });
 }
 
