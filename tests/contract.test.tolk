@@ -1528,6 +1528,11 @@ get fun `test stale status is derived from config version mismatch`() {
     val (contract, ownerA, ownerB, ownerC) = setupTreasury();
     val replacementOwners = twoOwners(ownerA, ownerC);
 
+    createProposal(contract, ownerA, ownerB.address, ton("0.20"));
+    val oldProposalBeforeConfig = contract.proposal(0);
+    expect(oldProposalBeforeConfig.configVersionAtCreation).toEqual(0);
+    expect(oldProposalBeforeConfig.status).toEqual(ProposalViewStatus.Pending);
+
     val createConfig = contract.sendCreateConfigProposal(
         ownerA.address,
         2,
@@ -1542,19 +1547,24 @@ get fun `test stale status is derived from config version mismatch`() {
         from: ownerA.address,
         to: contract.address,
     });
-    approveProposal(contract, ownerB, 0);
-    executeProposal(contract, ownerA, 0);
+    approveProposal(contract, ownerB, 1);
+    executeProposal(contract, ownerA, 1);
+
+    val oldProposalAfterConfig = contract.proposal(0);
+    expect(contract.configVersion()).toEqual(1);
+    expect(oldProposalAfterConfig.configVersionAtCreation).toEqual(0);
+    expect(oldProposalAfterConfig.currentConfigVersion).toEqual(1);
+    expect(oldProposalAfterConfig.status).toEqual(ProposalViewStatus.Stale);
 
     createProposal(contract, ownerA, ownerB.address, ton("0.20"));
-    approveProposal(contract, ownerC, 1);
+    approveProposal(contract, ownerC, 2);
 
-    val proposal = contract.proposal(1);
-    expect(contract.configVersion()).toEqual(1);
-    expect(proposal.configVersionAtCreation).toEqual(1);
-    expect(proposal.currentConfigVersion).toEqual(1);
-    expect(proposal.approvalCount).toEqual(2);
-    expect(proposal.requiredApprovalCount).toEqual(2);
-    expect(proposal.status).toEqual(ProposalViewStatus.Executable);
+    val newProposal = contract.proposal(2);
+    expect(newProposal.configVersionAtCreation).toEqual(1);
+    expect(newProposal.currentConfigVersion).toEqual(1);
+    expect(newProposal.approvalCount).toEqual(2);
+    expect(newProposal.requiredApprovalCount).toEqual(2);
+    expect(newProposal.status).toEqual(ProposalViewStatus.Executable);
 }
 
 get fun `test executed proposal remains executed even if stale`() {
