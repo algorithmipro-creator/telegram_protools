@@ -178,6 +178,10 @@ fun Treasury.proposal(self, proposalId: uint64): ProposalView {
     return net.runGetMethod(self.address, "proposal", [proposalId]);
 }
 
+fun Treasury.proposalConfigOwners(self, proposalId: uint64): map<address, uint8> {
+    return net.runGetMethod(self.address, "proposal_config_owners", [proposalId]);
+}
+
 fun Treasury.hasApproval(self, proposalId: uint64, owner: address): bool {
     return net.runGetMethod(self.address, "has_approval", [proposalId, owner]);
 }

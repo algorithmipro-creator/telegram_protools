@@ -227,6 +227,15 @@ get fun proposal(proposalId: uint64): ProposalView {
     return proposal.toView(storage.configVersion, storage.requiredThreshold(proposal.kind));
 }
 
+get fun proposal_config_owners(proposalId: uint64): map<address, uint8> {
+    val storage = lazy Storage.load();
+    val proposal = storage.mustGetProposal(proposalId);
+    assert (proposal.kind == ProposalKind.SetTreasuryConfig) throw Errors.InvalidProposalKind;
+    val payload = proposal.payload;
+    assert (payload is SetTreasuryConfigPayload) throw Errors.InvalidProposalKind;
+    return payload.newOwners;
+}
+
 get fun has_approval(proposalId: uint64, owner: address): bool {
     val storage = lazy Storage.load();
     val proposal = storage.mustGetProposal(proposalId);

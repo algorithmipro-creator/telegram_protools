@@ -406,6 +406,69 @@ get fun `test owner creates config proposal with creator auto approval`() {
     expect(contract.configVersion()).toEqual(0);
 }
 
+get fun `test proposal config owners exposes proposed owner set`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasuryMutableConfig();
+    val outsider = testTreasury("proposalConfigOwnersOutsider");
+    val newOwners = twoOwnersPlus(ownerA, ownerB, ownerC);
+
+    val res = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(res).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    val proposalOwners = contract.proposalConfigOwners(0);
+    expect(proposalOwners.exists(ownerA.address)).toBeTrue();
+    expect(proposalOwners.exists(ownerB.address)).toBeTrue();
+    expect(proposalOwners.exists(ownerC.address)).toBeTrue();
+    expect(proposalOwners.exists(outsider.address)).toBeFalse();
+}
+
+get fun `test execute config proposal remains unsupported`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasuryMutableConfig();
+    val newOwners = twoOwnersPlus(ownerA, ownerB, ownerC);
+
+    val create = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(create).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    approveProposal(contract, ownerB, 0);
+
+    val res = contract.sendExecuteProposal(ownerA.address, 0, { value: MIN_EXECUTE_VALUE });
+    expect(res).toHaveFailedTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidProposalKind,
+    });
+
+    expect(contract.ownerCount()).toEqual(2);
+    expect(contract.payoutThreshold()).toEqual(2);
+    expect(contract.configThreshold()).toEqual(2);
+    expect(contract.feeReserve()).toEqual(DEFAULT_FEE_RESERVE);
+    expect(contract.configVersion()).toEqual(0);
+    expect(contract.isOwner(ownerC.address)).toBeFalse();
+}
+
 get fun `test config proposal validation rejects non owner`() {
     val (contract, ownerA, ownerB, ownerC) = setupTreasuryMutableConfig();
     val newOwners = twoOwnersPlus(ownerA, ownerB, ownerC);
@@ -518,6 +581,28 @@ get fun `test config proposal validation rejects zero config threshold`() {
         from: ownerA.address,
         to: contract.address,
         exitCode: Errors.InvalidConfigThreshold,
+    });
+}
+
+get fun `test config proposal validation rejects zero proposed payout threshold`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasuryMutableConfig();
+    val newOwners = twoOwnersPlus(ownerA, ownerB, ownerC);
+
+    val res = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        0,
+        2,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveFailedTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidPayoutThreshold,
     });
 }
 
@@ -640,6 +725,22 @@ get fun `test config proposal validation rejects invalid expiry and minimum valu
         { value: MIN_CREATE_VALUE },
     );
     expect(expired).toHaveFailedTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidExpiry,
+    });
+
+    val tooFar = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + MAX_EXPIRY_SECONDS + 1,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(tooFar).toHaveFailedTx<CreateConfigProposal>({
         from: ownerA.address,
         to: contract.address,
         exitCode: Errors.InvalidExpiry,
