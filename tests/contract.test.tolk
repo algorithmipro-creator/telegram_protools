@@ -7,6 +7,22 @@ import "@acton/types/transaction"
 import "@contracts/types"
 import "@wrappers/Treasury.gen"
 
+fun Treasury.payoutThreshold(self): uint8 {
+    return net.runGetMethod(self.address, "payout_threshold");
+}
+
+fun Treasury.configThreshold(self): uint8 {
+    return net.runGetMethod(self.address, "config_threshold");
+}
+
+fun Treasury.configThresholdMutable(self): bool {
+    return net.runGetMethod(self.address, "config_threshold_mutable");
+}
+
+fun Treasury.configVersion(self): uint32 {
+    return net.runGetMethod(self.address, "config_version");
+}
+
 get fun `test deploy exposes treasury config`() {
     val (contract, ownerA, ownerB, _) = setupTreasury();
 
@@ -59,7 +75,10 @@ get fun `test invalid treasury config is rejected`() {
 
     val badThreshold = Treasury.fromStorage(Storage {
         ownerCount: 2,
-        threshold: 3,
+        payoutThreshold: 2,
+        configThreshold: 3,
+        configThresholdMutable: false,
+        configVersion: 0,
         proposalSeqno: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
@@ -70,14 +89,17 @@ get fun `test invalid treasury config is rejected`() {
     expect(thresholdDeploy).toHaveFailedTx({
         from: ownerA.address,
         to: badThreshold.address,
-        exitCode: Errors.InvalidThreshold,
+        exitCode: Errors.InvalidConfigThreshold,
     });
 
     var duplicateCollapsedOwners: map<address, uint8> = [];
     duplicateCollapsedOwners.set(ownerA.address, OWNER_KEY_VALUE);
     val duplicateCollapsed = Treasury.fromStorage(Storage {
         ownerCount: 2,
-        threshold: 1,
+        payoutThreshold: 1,
+        configThreshold: 1,
+        configThresholdMutable: false,
+        configVersion: 0,
         proposalSeqno: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners: duplicateCollapsedOwners,
@@ -100,7 +122,10 @@ get fun `test owner count below minimum is rejected`() {
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: MIN_OWNER_COUNT - 1,
-        threshold: 1,
+        payoutThreshold: 1,
+        configThreshold: 1,
+        configThresholdMutable: false,
+        configVersion: 0,
         proposalSeqno: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
@@ -144,7 +169,10 @@ get fun `test owner count above maximum is rejected`() {
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: MAX_OWNER_COUNT + 1,
-        threshold: 2,
+        payoutThreshold: 2,
+        configThreshold: 2,
+        configThresholdMutable: false,
+        configVersion: 0,
         proposalSeqno: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
@@ -170,7 +198,10 @@ get fun `test zero threshold is rejected`() {
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
-        threshold: 0,
+        payoutThreshold: 0,
+        configThreshold: 2,
+        configThresholdMutable: false,
+        configVersion: 0,
         proposalSeqno: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
@@ -182,7 +213,7 @@ get fun `test zero threshold is rejected`() {
     expect(res).toHaveFailedTx({
         from: ownerA.address,
         to: contract.address,
-        exitCode: Errors.InvalidThreshold,
+        exitCode: Errors.InvalidPayoutThreshold,
     });
 }
 
@@ -736,7 +767,10 @@ fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
-        threshold: 2,
+        payoutThreshold: 2,
+        configThreshold: 2,
+        configThresholdMutable: false,
+        configVersion: 0,
         proposalSeqno: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,

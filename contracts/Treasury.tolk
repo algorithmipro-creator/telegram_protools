@@ -76,7 +76,7 @@ fun onInternalMessage(in: InMessage) {
             var proposal = storage.mustGetProposal(msg.proposalId);
             assert (proposal.status == ProposalStatus.Pending) throw Errors.ProposalNotPending;
             assert (!proposal.isExpired()) throw Errors.ProposalExpired;
-            assert (proposal.approvalCount >= storage.threshold) throw Errors.ThresholdNotReached;
+            assert (proposal.approvalCount >= storage.payoutThreshold) throw Errors.ThresholdNotReached;
             val availableBalance = contract.getOriginalBalance() - in.valueCoins;
             assert (
                 availableBalance >= proposal.amount + storage.feeReserve
@@ -98,7 +98,7 @@ fun onInternalMessage(in: InMessage) {
             assert (proposal.status == ProposalStatus.Pending) throw Errors.ProposalNotPending;
             assert (!proposal.isExpired()) throw Errors.ProposalExpired;
             assert (proposal.creator == in.senderAddress) throw Errors.NotCreator;
-            assert (proposal.approvalCount < storage.threshold) throw Errors.AlreadyExecutable;
+            assert (proposal.approvalCount < storage.payoutThreshold) throw Errors.AlreadyExecutable;
 
             proposal.status = ProposalStatus.Cancelled;
             storage.proposals.set(msg.proposalId, proposal.toCell());
@@ -128,9 +128,24 @@ get fun owner_count(): uint8 {
     return storage.ownerCount;
 }
 
-get fun threshold(): uint8 {
+get fun payout_threshold(): uint8 {
     val storage = lazy Storage.load();
-    return storage.threshold;
+    return storage.payoutThreshold;
+}
+
+get fun config_threshold(): uint8 {
+    val storage = lazy Storage.load();
+    return storage.configThreshold;
+}
+
+get fun config_threshold_mutable(): bool {
+    val storage = lazy Storage.load();
+    return storage.configThresholdMutable;
+}
+
+get fun config_version(): uint32 {
+    val storage = lazy Storage.load();
+    return storage.configVersion;
 }
 
 get fun proposal_seqno(): uint64 {
@@ -151,7 +166,7 @@ get fun is_owner(owner: address): bool {
 get fun proposal(proposalId: uint64): ProposalView {
     val storage = lazy Storage.load();
     val proposal = storage.mustGetProposal(proposalId);
-    return proposal.toView(storage.threshold);
+    return proposal.toView(storage.payoutThreshold);
 }
 
 get fun has_approval(proposalId: uint64, owner: address): bool {

@@ -5,6 +5,7 @@ const MAX_OWNER_COUNT: uint8 = 10
 const DEFAULT_EXPIRY_SECONDS: uint32 = 86400
 const MAX_EXPIRY_SECONDS: uint32 = 2592000
 const DEFAULT_FEE_RESERVE: coins = ton("0.10")
+const MIN_FEE_RESERVE: coins = DEFAULT_FEE_RESERVE
 const MIN_CREATE_VALUE: coins = ton("0.05")
 const MIN_APPROVE_VALUE: coins = ton("0.05")
 const MIN_CANCEL_VALUE: coins = ton("0.05")
@@ -28,6 +29,12 @@ enum Errors {
     InsufficientBalance = 142
     NotCreator = 143
     InsufficientMessageValue = 144
+    InvalidPayoutThreshold = 145
+    InvalidConfigThreshold = 146
+    ConfigThresholdLocked = 147
+    InvalidFeeReserve = 148
+    ProposalStale = 149
+    InvalidProposalKind = 150
 }
 
 enum ProposalStatus: uint8 {
@@ -68,7 +75,10 @@ struct ProposalView {
 
 struct Storage {
     ownerCount: uint8
-    threshold: uint8
+    payoutThreshold: uint8
+    configThreshold: uint8
+    configThresholdMutable: bool
+    configVersion: uint32
     proposalSeqno: uint64
     feeReserve: coins
     owners: map<address, uint8>
@@ -88,8 +98,11 @@ fun Storage.assertValidConfig(self) {
     assert (self.ownerCount >= MIN_OWNER_COUNT) throw Errors.InvalidOwnerCount;
     assert (self.ownerCount <= MAX_OWNER_COUNT) throw Errors.InvalidOwnerCount;
     assert (self.ownerMapCount() == self.ownerCount) throw Errors.DuplicateOwner;
-    assert (self.threshold > 0) throw Errors.InvalidThreshold;
-    assert (self.threshold <= self.ownerCount) throw Errors.InvalidThreshold;
+    assert (self.payoutThreshold > 0) throw Errors.InvalidPayoutThreshold;
+    assert (self.configThreshold > 0) throw Errors.InvalidConfigThreshold;
+    assert (self.payoutThreshold <= self.configThreshold) throw Errors.InvalidConfigThreshold;
+    assert (self.configThreshold <= self.ownerCount) throw Errors.InvalidConfigThreshold;
+    assert (self.feeReserve >= MIN_FEE_RESERVE) throw Errors.InvalidFeeReserve;
 }
 
 fun Storage.ownerMapCount(self): int {
