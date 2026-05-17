@@ -119,8 +119,20 @@ fun Treasury.ownerCount(self): uint8 {
     return net.runGetMethod(self.address, "owner_count");
 }
 
-fun Treasury.threshold(self): uint8 {
-    return net.runGetMethod(self.address, "threshold");
+fun Treasury.payoutThreshold(self): uint8 {
+    return net.runGetMethod(self.address, "payout_threshold");
+}
+
+fun Treasury.configThreshold(self): uint8 {
+    return net.runGetMethod(self.address, "config_threshold");
+}
+
+fun Treasury.configThresholdMutable(self): bool {
+    return net.runGetMethod(self.address, "config_threshold_mutable");
+}
+
+fun Treasury.configVersion(self): uint32 {
+    return net.runGetMethod(self.address, "config_version");
 }
 
 fun Treasury.proposalSeqno(self): uint64 {

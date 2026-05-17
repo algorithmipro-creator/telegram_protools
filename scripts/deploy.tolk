@@ -14,12 +14,16 @@ fun main() {
     owners.set(ownerB.address, OWNER_KEY_VALUE);
 
     val ownerCount: uint8 = 2;
-    val threshold: uint8 = 2;
+    val payoutThreshold: uint8 = 2;
+    val configThreshold: uint8 = 2;
     val stateInit = ContractState {
         code: build("Treasury"),
         data: Storage {
             ownerCount,
-            threshold,
+            payoutThreshold,
+            configThreshold,
+            configThresholdMutable: false,
+            configVersion: 0,
             proposalSeqno: 0,
             feeReserve: DEFAULT_FEE_RESERVE,
             owners,
@@ -42,6 +46,7 @@ fun main() {
 
     println("TREASURY_ADDRESS={}", address);
     println("Owner count: {}", ownerCount);
-    println("Threshold: {}", threshold);
+    println("Payout threshold: {}", payoutThreshold);
+    println("Config threshold: {}", configThreshold);
     println("Fee reserve: {:ton}", DEFAULT_FEE_RESERVE);
 }

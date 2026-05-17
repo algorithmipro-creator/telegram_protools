@@ -316,7 +316,10 @@ export const ProposalView = {
 /**
  > struct Storage {
  >     ownerCount: uint8
- >     threshold: uint8
+ >     payoutThreshold: uint8
+ >     configThreshold: uint8
+ >     configThresholdMutable: bool
+ >     configVersion: uint32
  >     proposalSeqno: uint64
  >     feeReserve: coins
  >     owners: map<address, uint8>
@@ -327,7 +330,10 @@ export const ProposalView = {
 export interface Storage {
     readonly $: 'Storage'
     ownerCount: uint8
-    threshold: uint8
+    payoutThreshold: uint8
+    configThreshold: uint8
+    configThresholdMutable: boolean
+    configVersion: uint32
     proposalSeqno: uint64
     feeReserve: coins
     owners: c.Dictionary<c.Address, uint8>
@@ -338,7 +344,10 @@ export interface Storage {
 export const Storage = {
     create(args: {
         ownerCount: uint8
-        threshold: uint8
+        payoutThreshold: uint8
+        configThreshold: uint8
+        configThresholdMutable: boolean
+        configVersion: uint32
         proposalSeqno: uint64
         feeReserve: coins
         owners: c.Dictionary<c.Address, uint8>
@@ -354,7 +363,10 @@ export const Storage = {
         return {
             $: 'Storage',
             ownerCount: s.loadUintBig(8),
-            threshold: s.loadUintBig(8),
+            payoutThreshold: s.loadUintBig(8),
+            configThreshold: s.loadUintBig(8),
+            configThresholdMutable: s.loadBoolean(),
+            configVersion: s.loadUintBig(32),
             proposalSeqno: s.loadUintBig(64),
             feeReserve: s.loadCoins(),
             owners: c.Dictionary.load<c.Address, uint8>(c.Dictionary.Keys.Address(), c.Dictionary.Values.BigUint(8), s),
@@ -367,7 +379,10 @@ export const Storage = {
     },
     store(self: Storage, b: c.Builder): void {
         b.storeUint(self.ownerCount, 8);
-        b.storeUint(self.threshold, 8);
+        b.storeUint(self.payoutThreshold, 8);
+        b.storeUint(self.configThreshold, 8);
+        b.storeBit(self.configThresholdMutable);
+        b.storeUint(self.configVersion, 32);
         b.storeUint(self.proposalSeqno, 64);
         b.storeCoins(self.feeReserve);
         b.storeDict<c.Address, uint8>(self.owners, c.Dictionary.Keys.Address(), c.Dictionary.Values.BigUint(8));
@@ -579,14 +594,13 @@ function calculateDeployedAddress(code: c.Cell, data: c.Cell, options: DeployedA
 }
 
 export class Treasury implements c.Contract {
-    static CodeCell = c.Cell.fromBase64('te6ccgECHQEABH0AART/APSkE/S88sgLAQIBYgIDAgLOBAUCASAREgIBIAYHAEFGxENCHAAZNfBHLgAcACk18Dc+D4I1i+klt04LuRceBwgEUT4kZEw4CDXLCKikjAM4wLXLCKikjAU4wLXLCKikjAc4wLXLCKikjAkgCAkKCwB3BAkXwQiwgHy4IIiwQvy4IJwIYEBC/SCb6UykQGcAaRREoEBC/R0b6Uy6DAxIrry4IMgwgDy4IS+8uCEgAf4x7UTQ0wfTB9M/+gD0BPQE9AVUdlRUdlQm8AH4l4IK+vCAvvLgkPiSI4EBC/QKb6Ex8uCA+CMI+kj6ANcLH/goI8cF8tCFIcIA8uCGUwq88uCHKoIIJ40AoCG+8uCH+JIoyMs/+lIT+lIB+gIZyx8Yyx/PiAAGyVJCgED0F/iSDAH+Me1E0NMH0wfTP/oA9AT0BPQFVHZUVHZUJvAB+JeCCvrwgL7y4JD4kiOBAQv0Cm+hMfLggAfXCz9TAYBA9A/y4IjQ0z/6SPpI+gDTH9Mf0wchwgLyRdMH0SHy0In4IyO+8tCK+JIpyMs/+lL5FiBWEYMH9A5voTHy0IvIz4QGAg0B/jHtRNDTB9MH0z/6APQE9AQg9AVUZ3BUZ3BUZ3DwAfiXggr68IC+8uCQ+JIjgQEL9ApvoTHy4IAH1ws/UwGAQPQP8uCI0NM/+kj6SPoA0x/TH9MHIcIC8kXTB9EB8tCJ+CMivvLQilMMvvLgjPgnbxD4l6FTS6C+8uCOBsjLPxUOATbjAjDHAPLgge1E0NMH0wfTP/oA9AT0BPQF8AEPAFgkyMs/+lL5FsjPhAZAGIMH9EMDpAXIywcUywcUyz9QA/oC9AAS9AD0AMntVAByERGDB/RDD6QHyMs/FvpSFPpSWPoCyx/LH8sHywfJAoBA9BcFyMsHFMsHEss/AfoC9AD0APQAye1UAIb6UlIw+lIi+gLLHxPLH8+EBhPLB8lANIBA9BcHyMsHFssHFMs/WPoC9AAT9AATzsntVMjPhQj6UgH6AnDPC2rJcfsAAf4x7UTQ0wfTB9M/+gD0BPQEIPQFVGdwVGdwVGdw8AH4l4IK+vCAvvLgkPiSI4EBC/QKb6Ex8uCAB9cLP1MBgED0D/LgiNDTP/pI+kj6ANMf0x/TByHCAvJF0wfRAfLQifgjIr7y0Ir4kibHBfLgj1MMufLgjQbIyz8V+lIT+lIBEABM+gLLH8sfz4QKywfJAoBA9BcFyMsHFMsHEss/AfoC9AD0AM7J7VQCAVgTFAIBIBcYAgFIFRYAK7cbHaiaGmnmP0AGPoCwICF+gU30JjAAQ65S9qJoaaeY/QAY+gD6APoCgWRln/0pfIsAwYP6BzfQmMAAi60jdqJoaYOY6YPpn5j9ABj6APoCiUAgegf5cERoaZ/9JH0kfQBpj+mP6YOQ4QF5IumD6JOqI5gTqiOYE6ojmCkH+AEqg0AAF7prftRNDTBzHXCweAIBIBkaAgFmGxwAEbTLXaiaGuFg8AAWqf/tRNDTDzHXCz8AFqm/7UTQ008x+gAw');
+    static CodeCell = c.Cell.fromBase64('te6ccgECIwEABRgAART/APSkE/S88sgLAQIBYgIDAgLOBAUCASAREgIBIAYHAEFGxENCHAAZNfBHLgAcACk18Dc+D4I1i+klt04LuRceBwgEUT4kZEw4CDXLCKikjAM4wLXLCKikjAU4wLXLCKikjAc4wLXLCKikjAkgCAkKCwCnFtsIjIkwgHy4IIkwQvy4IJwIoEBC/SCb6UykQGcAaRRE4EBC/R0b6Uy6DBsEiS68uCDIsIA8uCRIcIA8uCSUSG78uCSWLvy4JKCEAX14QC+8uCUgAf4x7UTQ0wfTB9MH0gDTH9M/+gD0BPQE9AVUeYdUeYdUeYcp8AH4l4IK+vCAvvLgkPiSI4EBC/QKb6Ex8uCA+CML+kj6ANcLH/goI8cF8tCFIcIA8uCGUw288uCHLYIIJ40AoCG+8uCH+JIoyMs/+lIT+lIB+gIcyx8byx/PiAAGDAH+Me1E0NMH0wfTB9IA0x/TP/oA9AT0BPQFVHmHVHmHVHmHKfAB+JeCCvrwgL7y4JD4kiOBAQv0Cm+hMfLggArXCz9TAYBA9A/y4IjQ0z/6SPpI+gDTH9Mf0wchwgLyRdMH0SHy0In4IyO+8tCK+JIpyMs/+lL5FiBWFIMH9A5voQ0B/DHtRNDTB9MH0wfSANMf0z/6APQE9AQg9AVUaqBUaqBUaqBUaqBSoPAB+JeCCvrwgL7y4JD4kiOBAQv0Cm+hMfLggArXCz9TAYBA9A/y4IjQ0z/6SPpI+gDTH9Mf0wchwgLyRdMH0QHy0In4IyK+8tCKUw++8uCM+CdvEPiXoQ4BQuMCMMcA8uCB7UTQ0wfTB9MH0gDTH9M/+gD0BPQE9AXwAQ8AeMlSQoBA9Bf4kiTIyz/6UvkWyM+EBkAbgwf0QwOkCMjLBxfLBxXLBxPKAMsfFMs/AfoC9AAS9AD0AMntVACUMfLQi8jPhAYCERSDB/RDERKkB8jLPxb6UhT6Ulj6Assfyx/LB8sHyQKAQPQXCMjLBxfLBxXLBxPKAMsfyz8B+gL0APQA9ADJ7VQArlNLoL7y4I4GyMs/FfpSUjD6UiL6AssfE8sfz4QGE8sHyUA0gED0FwrIywcZywcXywcVygATyx/LPwH6AvQAE/QAE87J7VTIz4UI+lIB+gJwzwtqyXH7AAH+Me1E0NMH0wfTB9IA0x/TP/oA9AT0BCD0BVRqoFRqoFRqoFRqoFKg8AH4l4IK+vCAvvLgkPiSI4EBC/QKb6Ex8uCACtcLP1MBgED0D/LgiNDTP/pI+kj6ANMf0x/TByHCAvJF0wfRAfLQifgjIr7y0Ir4kibHBfLgj1MPufLgjRAAcAbIyz8V+lIT+lIB+gLLH8sfz4QKywfJAoBA9BcIyMsHF8sHFcsHE8oAyx/LPwH6AvQA9ADOye1UAgEgExQCAVgbHAIBIBUWAgEgFxgAF7fWnaiaGmHmOuFg8AAXtcpdqJoaYwY64WPwAgFIGRoAK7cbHaiaGm8GP0AGPoCwICF+gU30JjAAQ65S9qJoabwY/QAY+gD6APoCgWRln/0pfIsAwYP6BzfQmMAAi60jdqJoaYOY6YPptBj9ABj6APoCiUAgegf5cERoaZ/9JH0kfQBpj+mP6YOQ4QF5IumD6JOqI5gTqiOYE6ojmCkH+AEqg0ACASAdHgIBYiEiAgFYHyAAF7A/u1E0NMHMdcLB4AAWqf/tRNDTODHXCz8AFqm/7UTQ03gx+gAwABaple1E0NMXMdcKAAAQqlrtRNDXCwc=');
 
     static Errors = {
         'Errors.NotOwner': 128,
         'Errors.InvalidMessage': 129,
         'Errors.InvalidOwnerCount': 130,
         'Errors.DuplicateOwner': 131,
-        'Errors.InvalidThreshold': 132,
         'Errors.InvalidRecipient': 133,
         'Errors.InvalidAmount': 134,
         'Errors.InvalidExpiry': 135,
@@ -599,6 +613,9 @@ export class Treasury implements c.Contract {
         'Errors.InsufficientBalance': 142,
         'Errors.NotCreator': 143,
         'Errors.InsufficientMessageValue': 144,
+        'Errors.InvalidPayoutThreshold': 145,
+        'Errors.InvalidConfigThreshold': 146,
+        'Errors.InvalidFeeReserve': 148,
     }
 
     readonly address: c.Address
@@ -615,7 +632,10 @@ export class Treasury implements c.Contract {
 
     static fromStorage(emptyStorage: {
         ownerCount: uint8
-        threshold: uint8
+        payoutThreshold: uint8
+        configThreshold: uint8
+        configThresholdMutable: boolean
+        configVersion: uint32
         proposalSeqno: uint64
         feeReserve: coins
         owners: c.Dictionary<c.Address, uint8>
@@ -711,8 +731,23 @@ export class Treasury implements c.Contract {
         return r.readBigInt();
     }
 
-    async getThreshold(provider: ContractProvider): Promise<uint8> {
-        const r = StackReader.fromGetMethod(1, await provider.get('threshold', []));
+    async getPayoutThreshold(provider: ContractProvider): Promise<uint8> {
+        const r = StackReader.fromGetMethod(1, await provider.get('payout_threshold', []));
+        return r.readBigInt();
+    }
+
+    async getConfigThreshold(provider: ContractProvider): Promise<uint8> {
+        const r = StackReader.fromGetMethod(1, await provider.get('config_threshold', []));
+        return r.readBigInt();
+    }
+
+    async getConfigThresholdMutable(provider: ContractProvider): Promise<boolean> {
+        const r = StackReader.fromGetMethod(1, await provider.get('config_threshold_mutable', []));
+        return r.readBoolean();
+    }
+
+    async getConfigVersion(provider: ContractProvider): Promise<uint32> {
+        const r = StackReader.fromGetMethod(1, await provider.get('config_version', []));
         return r.readBigInt();
     }
 
