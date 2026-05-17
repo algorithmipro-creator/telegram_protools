@@ -433,9 +433,96 @@ get fun `test proposal config owners exposes proposed owner set`() {
     expect(proposalOwners.exists(outsider.address)).toBeFalse();
 }
 
-get fun `test execute config proposal remains unsupported`() {
-    val (contract, ownerA, ownerB, ownerC) = setupTreasuryMutableConfig();
-    val newOwners = twoOwnersPlus(ownerA, ownerB, ownerC);
+get fun `test config proposal requires current config threshold approvals`() {
+    val (contract, ownerA, ownerB, ownerC, _) = setupThreeOwnerTreasury(2, 3, true);
+    val newOwners = threeOwners(ownerA, ownerB, ownerC);
+
+    val create = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        2,
+        3,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(create).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    val res = contract.sendExecuteProposal(ownerA.address, 0, { value: MIN_EXECUTE_VALUE });
+    expect(res).toHaveFailedTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ThresholdNotReached,
+    });
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Pending);
+}
+
+get fun `test config proposal cannot execute with only payout approvals when payout threshold lower`() {
+    val (contract, ownerA, ownerB, ownerC, _) = setupThreeOwnerTreasury(2, 3, true);
+    val newOwners = threeOwners(ownerA, ownerB, ownerC);
+
+    val create = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        2,
+        3,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(create).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    approveProposal(contract, ownerB, 0);
+
+    val res = contract.sendExecuteProposal(ownerA.address, 0, { value: MIN_EXECUTE_VALUE });
+    expect(res).toHaveFailedTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ThresholdNotReached,
+    });
+    expect(contract.proposal(0).approvalCount).toEqual(2);
+    expect(contract.proposal(0).requiredApprovalCount).toEqual(3);
+}
+
+get fun `test config proposal creator auto approval counts for config proposal`() {
+    val (contract, ownerA, ownerB, ownerC, _) = setupThreeOwnerTreasury(1, 2, true);
+    val newOwners = threeOwners(ownerA, ownerB, ownerC);
+
+    val create = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        1,
+        2,
+        ton("0.20"),
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(create).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    approveProposal(contract, ownerB, 0);
+
+    val res = contract.sendExecuteProposal(ownerA.address, 0, { value: MIN_EXECUTE_VALUE });
+    expect(res).toHaveSuccessfulTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    expect(contract.configVersion()).toEqual(1);
+    expect(contract.feeReserve()).toEqual(ton("0.20"));
+}
+
+get fun `test config threshold decrease requires old current config threshold`() {
+    val (contract, ownerA, ownerB, ownerC, _) = setupThreeOwnerTreasury(2, 3, true);
+    val newOwners = threeOwners(ownerA, ownerB, ownerC);
 
     val create = contract.sendCreateConfigProposal(
         ownerA.address,
@@ -451,15 +538,89 @@ get fun `test execute config proposal remains unsupported`() {
         from: ownerA.address,
         to: contract.address,
     });
+    approveProposal(contract, ownerB, 0);
 
+    val early = contract.sendExecuteProposal(ownerA.address, 0, { value: MIN_EXECUTE_VALUE });
+    expect(early).toHaveFailedTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ThresholdNotReached,
+    });
+
+    approveProposal(contract, ownerC, 0);
+    val res = contract.sendExecuteProposal(ownerA.address, 0, { value: MIN_EXECUTE_VALUE });
+    expect(res).toHaveSuccessfulTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    expect(contract.configThreshold()).toEqual(2);
+}
+
+get fun `test config proposal execution does not require proposed future config threshold`() {
+    val (contract, ownerA, ownerB, ownerC, _) = setupThreeOwnerTreasury(2, 2, true);
+    val newOwners = threeOwners(ownerA, ownerB, ownerC);
+
+    val create = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        2,
+        3,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(create).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
     approveProposal(contract, ownerB, 0);
 
     val res = contract.sendExecuteProposal(ownerA.address, 0, { value: MIN_EXECUTE_VALUE });
-    expect(res).toHaveFailedTx<ExecuteProposal>({
+    expect(res).toHaveSuccessfulTx<ExecuteProposal>({
         from: ownerA.address,
         to: contract.address,
-        exitCode: Errors.InvalidProposalKind,
     });
+    expect(contract.configThreshold()).toEqual(3);
+    expect(contract.configVersion()).toEqual(1);
+}
+
+get fun `test execute SetTreasuryConfig updates config and marks stale proposals`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasury();
+    val replacementOwners = twoOwners(ownerA, ownerC);
+
+    createProposal(contract, ownerA, ownerC.address, ton("0.20"));
+
+    val oldConfig = contract.sendCreateConfigProposal(
+        ownerA.address,
+        2,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        twoOwners(ownerA, ownerB),
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(oldConfig).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    val create = contract.sendCreateConfigProposal(
+        ownerA.address,
+        2,
+        1,
+        2,
+        ton("0.20"),
+        replacementOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(create).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    approveProposal(contract, ownerB, 2);
 
     expect(contract.ownerCount()).toEqual(2);
     expect(contract.payoutThreshold()).toEqual(2);
@@ -467,6 +628,94 @@ get fun `test execute config proposal remains unsupported`() {
     expect(contract.feeReserve()).toEqual(DEFAULT_FEE_RESERVE);
     expect(contract.configVersion()).toEqual(0);
     expect(contract.isOwner(ownerC.address)).toBeFalse();
+
+    val res = contract.sendExecuteProposal(ownerA.address, 2, { value: MIN_EXECUTE_VALUE });
+    expect(res).toHaveSuccessfulTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    expect(contract.ownerCount()).toEqual(2);
+    expect(contract.payoutThreshold()).toEqual(1);
+    expect(contract.configThreshold()).toEqual(2);
+    expect(contract.feeReserve()).toEqual(ton("0.20"));
+    expect(contract.configVersion()).toEqual(1);
+    expect(contract.isOwner(ownerA.address)).toBeTrue();
+    expect(contract.isOwner(ownerB.address)).toBeFalse();
+    expect(contract.isOwner(ownerC.address)).toBeTrue();
+    expect(contract.proposal(2).status).toEqual(ProposalViewStatus.Executed);
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Stale);
+    expect(contract.proposal(1).status).toEqual(ProposalViewStatus.Stale);
+
+    val secondExecute = contract.sendExecuteProposal(
+        ownerA.address,
+        2,
+        { value: MIN_EXECUTE_VALUE },
+    );
+    expect(secondExecute).toHaveFailedTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalNotPending,
+    });
+}
+
+get fun `test removed owner cannot approve new proposals after execution`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasury();
+    val replacementOwners = twoOwners(ownerA, ownerC);
+
+    val createConfig = contract.sendCreateConfigProposal(
+        ownerA.address,
+        2,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        replacementOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(createConfig).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    approveProposal(contract, ownerB, 0);
+    executeProposal(contract, ownerA, 0);
+
+    createProposal(contract, ownerA, ownerC.address, ton("0.20"));
+
+    val res = contract.sendApproveProposal(ownerB.address, 1, { value: MIN_APPROVE_VALUE });
+    expect(res).toHaveFailedTx<ApproveProposal>({
+        from: ownerB.address,
+        to: contract.address,
+        exitCode: Errors.NotOwner,
+    });
+}
+
+get fun `test added owner can approve new proposals after execution`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasury();
+    val replacementOwners = twoOwners(ownerA, ownerC);
+
+    val createConfig = contract.sendCreateConfigProposal(
+        ownerA.address,
+        2,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        replacementOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(createConfig).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    approveProposal(contract, ownerB, 0);
+    executeProposal(contract, ownerA, 0);
+
+    createProposal(contract, ownerA, ownerC.address, ton("0.20"));
+    approveProposal(contract, ownerC, 1);
+
+    expect(contract.proposal(1).approvalCount).toEqual(2);
+    expect(contract.proposal(1).status).toEqual(ProposalViewStatus.Executable);
 }
 
 get fun `test config proposal validation rejects non owner`() {
@@ -1351,7 +1600,45 @@ fun setupTreasuryMutableConfig(): (Treasury, TestTreasury, TestTreasury, TestTre
     return (contract, ownerA, ownerB, outsider);
 }
 
-fun twoOwnersPlus(
+fun setupThreeOwnerTreasury(
+    payoutThreshold: uint8,
+    configThreshold: uint8,
+    mutable: bool,
+): (Treasury, TestTreasury, TestTreasury, TestTreasury, TestTreasury) {
+    val ownerA = testTreasury("threeOwnerA");
+    val ownerB = testTreasury("threeOwnerB");
+    val ownerC = testTreasury("threeOwnerC");
+    val outsider = testTreasury("threeOwnerOutsider");
+
+    val owners = threeOwners(ownerA, ownerB, ownerC);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 3,
+        payoutThreshold,
+        configThreshold,
+        configThresholdMutable: mutable,
+        configVersion: 0,
+        proposalSeqno: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+        approvals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveSuccessfulDeploy({ to: contract.address });
+
+    return (contract, ownerA, ownerB, ownerC, outsider);
+}
+
+fun twoOwners(ownerA: TestTreasury, ownerB: TestTreasury): map<address, uint8> {
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_KEY_VALUE);
+    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    return owners;
+}
+
+fun threeOwners(
     ownerA: TestTreasury,
     ownerB: TestTreasury,
     ownerC: TestTreasury,
@@ -1361,6 +1648,14 @@ fun twoOwnersPlus(
     owners.set(ownerB.address, OWNER_KEY_VALUE);
     owners.set(ownerC.address, OWNER_KEY_VALUE);
     return owners;
+}
+
+fun twoOwnersPlus(
+    ownerA: TestTreasury,
+    ownerB: TestTreasury,
+    ownerC: TestTreasury,
+): map<address, uint8> {
+    return threeOwners(ownerA, ownerB, ownerC);
 }
 
 fun setupTreasuryWithSeededProposal(

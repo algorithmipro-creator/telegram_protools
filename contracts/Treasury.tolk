@@ -128,21 +128,51 @@ fun onInternalMessage(in: InMessage) {
             assert (proposal.status == ProposalStatus.Pending) throw Errors.ProposalNotPending;
             assert (!proposal.isStale(storage.configVersion)) throw Errors.ProposalStale;
             assert (!proposal.isExpired()) throw Errors.ProposalExpired;
-            assert (proposal.kind == ProposalKind.PayoutTon) throw Errors.InvalidProposalKind;
-            val threshold = storage.requiredThreshold(proposal.kind);
-            assert (proposal.approvalCount >= threshold) throw Errors.ThresholdNotReached;
-            val payload = proposal.payload;
-            assert (payload is PayoutTonPayload) throw Errors.InvalidProposalKind;
-            val availableBalance = contract.getOriginalBalance() - in.valueCoins;
-            assert (
-                availableBalance >= payload.amount + storage.feeReserve
-            ) throw Errors.InsufficientBalance;
 
-            proposal.status = ProposalStatus.Executed;
-            storage.proposals.set(msg.proposalId, proposal.toCell());
-            storage.save();
+            if (proposal.kind == ProposalKind.SetTreasuryConfig) {
+                val threshold = storage.configThreshold;
+                assert (proposal.approvalCount >= threshold) throw Errors.ThresholdNotReached;
+                val payload = proposal.payload;
+                assert (payload is SetTreasuryConfigPayload) throw Errors.InvalidProposalKind;
+                storage.assertValidProposedConfig(
+                    payload.newOwnerCount,
+                    payload.newPayoutThreshold,
+                    payload.newConfigThreshold,
+                    payload.newFeeReserve,
+                    payload.newOwners,
+                );
 
-            sendTonPayout(payload.recipient, payload.amount);
+                proposal.status = ProposalStatus.Executed;
+                storage.proposals.set(msg.proposalId, proposal.toCell());
+                storage.ownerCount = payload.newOwnerCount;
+                storage.payoutThreshold = payload.newPayoutThreshold;
+                storage.configThreshold = payload.newConfigThreshold;
+                storage.feeReserve = payload.newFeeReserve;
+                storage.owners = payload.newOwners;
+                storage.configVersion = storage.configVersion + 1;
+                storage.save();
+                return;
+            }
+
+            if (proposal.kind == ProposalKind.PayoutTon) {
+                val threshold = storage.payoutThreshold;
+                assert (proposal.approvalCount >= threshold) throw Errors.ThresholdNotReached;
+                val payload = proposal.payload;
+                assert (payload is PayoutTonPayload) throw Errors.InvalidProposalKind;
+                val availableBalance = contract.getOriginalBalance() - in.valueCoins;
+                assert (
+                    availableBalance >= payload.amount + storage.feeReserve
+                ) throw Errors.InsufficientBalance;
+
+                proposal.status = ProposalStatus.Executed;
+                storage.proposals.set(msg.proposalId, proposal.toCell());
+                storage.save();
+
+                sendTonPayout(payload.recipient, payload.amount);
+                return;
+            }
+
+            assert (false) throw Errors.InvalidProposalKind;
         }
         CancelProposal => {
             var storage = lazy Storage.load();
