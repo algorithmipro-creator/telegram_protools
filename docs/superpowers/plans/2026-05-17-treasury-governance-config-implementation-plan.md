@@ -288,7 +288,7 @@ Expected:
 
 ---
 
-### Task 3: Implement Governance Storage Primitives
+### Task 3: Implement Governance Config Storage Primitives
 
 **Files:**
 - Modify `contracts/types.tolk`
@@ -329,7 +329,130 @@ enum Errors {
 }
 ```
 
-- [ ] **Step 2: Add proposal kind and stale status**
+- [ ] **Step 2: Replace storage threshold fields**
+
+Replace `threshold: uint8` with:
+
+```tolk
+payoutThreshold: uint8
+configThreshold: uint8
+configThresholdMutable: bool
+configVersion: uint32
+```
+
+Keep:
+
+```tolk
+proposalSeqno: uint64
+feeReserve: coins
+owners: map<address, uint8>
+proposals: map<uint64, Cell<PayoutProposal>>
+approvals: map<uint256, uint8>
+```
+
+- [ ] **Step 3: Add config validation helpers**
+
+Replace `Storage.assertValidConfig` with validation of the current config:
+
+```tolk
+fun Storage.assertValidConfig(self) {
+    assert (self.ownerCount >= MIN_OWNER_COUNT) throw Errors.InvalidOwnerCount;
+    assert (self.ownerCount <= MAX_OWNER_COUNT) throw Errors.InvalidOwnerCount;
+    assert (self.ownerMapCount() == self.ownerCount) throw Errors.DuplicateOwner;
+    assert (self.payoutThreshold > 0) throw Errors.InvalidPayoutThreshold;
+    assert (self.configThreshold > 0) throw Errors.InvalidConfigThreshold;
+    assert (self.payoutThreshold <= self.configThreshold) throw Errors.InvalidConfigThreshold;
+    assert (self.configThreshold <= self.ownerCount) throw Errors.InvalidConfigThreshold;
+    assert (self.feeReserve >= MIN_FEE_RESERVE) throw Errors.InvalidFeeReserve;
+}
+```
+
+- [ ] **Step 4: Update existing payout-core references**
+
+Keep the existing `PayoutProposal` struct and payout proposal storage unchanged in this task. Update current payout logic to use the new payout threshold field:
+
+```tolk
+storage.threshold -> storage.payoutThreshold
+```
+
+Do not add `ProposalKind`, typed proposal payloads, stale behavior, or config proposal messages in this task. Those belong to Task 4 and later tasks.
+
+- [ ] **Step 5: Update setup helpers**
+
+In `tests/contract.test.tolk`, update `setupTreasury()` to use:
+
+```tolk
+ownerCount: 2,
+payoutThreshold: 2,
+configThreshold: 2,
+configThresholdMutable: false,
+configVersion: 0,
+proposalSeqno: 0,
+feeReserve: DEFAULT_FEE_RESERVE,
+owners,
+proposals: [],
+approvals: [],
+```
+
+Update all existing `Storage { threshold: ... }` test literals to the new fields.
+
+- [ ] **Step 6: Add new getters**
+
+In `contracts/Treasury.tolk`, replace `threshold()` getter with:
+
+```tolk
+get fun payout_threshold(): uint8 {
+    val storage = lazy Storage.load();
+    return storage.payoutThreshold;
+}
+
+get fun config_threshold(): uint8 {
+    val storage = lazy Storage.load();
+    return storage.configThreshold;
+}
+
+get fun config_threshold_mutable(): bool {
+    val storage = lazy Storage.load();
+    return storage.configThresholdMutable;
+}
+
+get fun config_version(): uint32 {
+    val storage = lazy Storage.load();
+    return storage.configVersion;
+}
+```
+
+- [ ] **Step 7: Run validation tests**
+
+Run:
+
+```powershell
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test --filter 'deploy exposes|invalid treasury config|owner count|zero threshold|payout threshold above|config threshold above|mutable true deploy'"
+```
+
+Expected:
+
+- selected tests pass.
+
+- [ ] **Step 8: Commit**
+
+Run:
+
+```powershell
+git add contracts/types.tolk contracts/Treasury.tolk tests/contract.test.tolk
+git commit -m "feat: add Treasury governance config primitives"
+```
+
+---
+
+### Task 4: Migrate Payout Proposals To Typed Proposal Envelope
+
+**Files:**
+- Modify `contracts/types.tolk`
+- Modify `contracts/Treasury.tolk`
+- Modify `tests/contract.test.tolk`
+
+- [ ] **Step 1: Add proposal kind and stale view status**
 
 In `contracts/types.tolk`, extend enums:
 
@@ -349,28 +472,7 @@ enum ProposalViewStatus: uint8 {
 }
 ```
 
-- [ ] **Step 3: Replace storage threshold fields**
-
-Replace `threshold: uint8` with:
-
-```tolk
-payoutThreshold: uint8
-configThreshold: uint8
-configThresholdMutable: bool
-configVersion: uint32
-```
-
-Keep:
-
-```tolk
-proposalSeqno: uint64
-feeReserve: coins
-owners: map<address, uint8>
-proposals: map<uint64, Cell<Proposal>>
-approvals: map<uint256, uint8>
-```
-
-- [ ] **Step 4: Add payload and proposal structs**
+- [ ] **Step 2: Add typed proposal envelope structs**
 
 Replace `PayoutProposal` with a typed proposal envelope:
 
@@ -403,24 +505,19 @@ struct Proposal {
 }
 ```
 
-- [ ] **Step 5: Add config validation helpers**
-
-Replace `Storage.assertValidConfig` with validation of the current config:
+Change storage from:
 
 ```tolk
-fun Storage.assertValidConfig(self) {
-    assert (self.ownerCount >= MIN_OWNER_COUNT) throw Errors.InvalidOwnerCount;
-    assert (self.ownerCount <= MAX_OWNER_COUNT) throw Errors.InvalidOwnerCount;
-    assert (self.ownerMapCount() == self.ownerCount) throw Errors.DuplicateOwner;
-    assert (self.payoutThreshold > 0) throw Errors.InvalidPayoutThreshold;
-    assert (self.configThreshold > 0) throw Errors.InvalidConfigThreshold;
-    assert (self.payoutThreshold <= self.configThreshold) throw Errors.InvalidConfigThreshold;
-    assert (self.configThreshold <= self.ownerCount) throw Errors.InvalidConfigThreshold;
-    assert (self.feeReserve >= MIN_FEE_RESERVE) throw Errors.InvalidFeeReserve;
-}
+proposals: map<uint64, Cell<PayoutProposal>>
 ```
 
-- [ ] **Step 6: Add threshold and stale helpers**
+to:
+
+```tolk
+proposals: map<uint64, Cell<Proposal>>
+```
+
+- [ ] **Step 3: Add threshold helper**
 
 Add:
 
@@ -434,92 +531,9 @@ fun Storage.requiredThreshold(self, kind: ProposalKind): uint8 {
     }
     throw Errors.InvalidProposalKind;
 }
-
-fun Proposal.isExpired(self): bool {
-    return blockchain.now() >= self.expiresAt;
-}
-
-fun Proposal.isStale(self, currentConfigVersion: uint32): bool {
-    return self.configVersionAtCreation != currentConfigVersion;
-}
 ```
 
-- [ ] **Step 7: Update setup helpers**
-
-In `tests/contract.test.tolk`, update `setupTreasury()` to use:
-
-```tolk
-ownerCount: 2,
-payoutThreshold: 2,
-configThreshold: 2,
-configThresholdMutable: false,
-configVersion: 0,
-proposalSeqno: 0,
-feeReserve: DEFAULT_FEE_RESERVE,
-owners,
-proposals: [],
-approvals: [],
-```
-
-Update all existing `Storage { threshold: ... }` test literals to the new fields.
-
-- [ ] **Step 8: Add new getters**
-
-In `contracts/Treasury.tolk`, replace `threshold()` getter with:
-
-```tolk
-get fun payout_threshold(): uint8 {
-    val storage = lazy Storage.load();
-    return storage.payoutThreshold;
-}
-
-get fun config_threshold(): uint8 {
-    val storage = lazy Storage.load();
-    return storage.configThreshold;
-}
-
-get fun config_threshold_mutable(): bool {
-    val storage = lazy Storage.load();
-    return storage.configThresholdMutable;
-}
-
-get fun config_version(): uint32 {
-    val storage = lazy Storage.load();
-    return storage.configVersion;
-}
-```
-
-- [ ] **Step 9: Run validation tests**
-
-Run:
-
-```powershell
-wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test --filter 'deploy exposes|invalid treasury config|owner count|zero threshold|payout threshold above|config threshold above|mutable true deploy'"
-```
-
-Expected:
-
-- selected tests pass.
-
-- [ ] **Step 10: Commit**
-
-Run:
-
-```powershell
-git add contracts/types.tolk contracts/Treasury.tolk tests/contract.test.tolk
-git commit -m "feat: add Treasury governance config primitives"
-```
-
----
-
-### Task 4: Migrate Payout Proposals To Typed Proposal Envelope
-
-**Files:**
-- Modify `contracts/types.tolk`
-- Modify `contracts/Treasury.tolk`
-- Modify `tests/contract.test.tolk`
-
-- [ ] **Step 1: Update payout view tests**
+- [ ] **Step 4: Update payout view tests**
 
 Update existing payout proposal assertions to read the typed proposal view:
 
