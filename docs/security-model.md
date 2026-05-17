@@ -14,7 +14,7 @@ Track A hardening evidence:
 - Storage reserve policy: `docs/research/track-a-storage-reserve-policy.md`.
 - Security review readiness checklist: `docs/research/track-a-security-checklist.md`.
 
-This document tracks the broader TreasuryFlow security model. The Track A Treasury Core v0.1 evidence currently applies only to immutable owners, immutable threshold, and TON payout proposals; Splitter, Telegram, backend/indexer, governance, Track B, and mainnet remain product-wide or future scope unless explicitly listed as Track A Core evidence.
+This document tracks the broader TreasuryFlow security model. The Track A Treasury Core v0.1 evidence currently covers TON payout proposals plus typed governance/config proposals for owners, `payoutThreshold`, `configThreshold`, and `feeReserve`; Splitter, Telegram, backend/indexer, Track B, and mainnet remain product-wide or future scope unless explicitly listed as Track A Core evidence.
 
 ## Assets To Protect
 
@@ -48,6 +48,12 @@ This document tracks the broader TreasuryFlow security model. The Track A Treasu
 | On-chain history retention | Bounded retention or cleanup/indexer policy is required before mainnet; Core v0.1 still retains proposal/approval history on-chain |
 | Payload transparency | Payload is decoded or marked with a warning |
 | Replay protection | Proposal/action cannot be reused after terminal status |
+| Current-config authority | Config changes require approval from current owners under the current config threshold |
+| Typed config governance | Config changes use only `SetTreasuryConfigProposal`; arbitrary governance payloads remain excluded |
+| Config threshold lock | `configThresholdMutable` is deploy-time only and immutable after deploy |
+| Stale after config change | Pending proposals from old config versions cannot approve, execute, or cancel |
+| Governance deadlock prevention | Final config must satisfy `1 <= payoutThreshold <= configThreshold <= ownerCount` |
+| Config owner preview | Proposed owner set is inspectable before approval via getter |
 
 ## Threats And Mitigations
 
@@ -65,7 +71,7 @@ This document tracks the broader TreasuryFlow security model. The Track A Treasu
 | Expired execution | expiry check before approval and execution |
 | Unknown payload | human-readable parser plus raw technical details |
 | Owner spoofing | onchain sender validation |
-| Threshold attack | owner and threshold changes are not implemented in Core v0.1; future changes require a separate reviewed governance design |
+| Threshold attack | typed config proposals require current `configThreshold`, stale proposals are invalidated after config changes, and final config validation prevents impossible owner/threshold states |
 | Jetton spoofing | Jettons excluded from first beta |
 | Bounce confusion | activity visibility and explicit failure state where possible |
 | Frontend compromise | onchain checks, generated wrappers, raw payload preview, source verification |

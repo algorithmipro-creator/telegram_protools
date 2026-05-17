@@ -10,8 +10,13 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 
 | Area | Status | Evidence Or Follow-Up |
 |---|---|---|
-| Owner set | Bounded in Core v0.1, needs external review | Owners are immutable after deploy and owner count is limited to `2..10`; governance changes remain out of scope. |
-| Threshold | Covered by config validation, needs external review | Threshold must be greater than `0` and no greater than owner count; post-deploy threshold changes remain out of scope. |
+| Owner set | Covered by tests, needs external review | Owner count remains limited to `2..10`; typed config governance can update owners under current owner and config-threshold authority. |
+| Threshold | Covered by tests, needs external review | `payoutThreshold` and `configThreshold` are validated on deploy and config execution so the contract cannot enter impossible threshold states. |
+| Governance config changes | Covered by tests, needs external review | `SetTreasuryConfigProposal` updates owners, thresholds, and fee reserve atomically under current config threshold. |
+| Config threshold lock | Covered by tests, needs external review | `configThresholdMutable` is deploy-time only and immutable. |
+| Stale proposal semantics | Covered by tests, needs external review | Stale status is derived from `configVersionAtCreation` and current `configVersion`. |
+| Governance deadlock prevention | Covered by tests, needs external review | Final config rejects impossible threshold and owner-count states. |
+| Config proposal preview/getters | Covered by tests, needs external review | Proposed owner set, proposal kind, required threshold, approvals, and config fields are inspectable. |
 | Duplicate approvals | Covered by tests, needs external review | Unit tests cover duplicate approval rejection; review approval key derivation and map semantics. |
 | Proposal lifecycle | Covered by tests, needs external review | Unit tests cover pending, executable, executed, canceled, and expired paths. |
 | Expiry | Covered by tests, needs external review | Proposal creation enforces future expiry and a 30-day maximum; approve and execute reject expired proposals. |
@@ -34,6 +39,11 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 |---|---|
 | Owner validation | Every externally callable state-changing path verifies the sender is an owner when required. |
 | Threshold validation | The contract cannot enter an impossible state such as threshold `0` or threshold greater than owner count. |
+| Current config authority | Config proposal approval and execution require current owners and the current config threshold. |
+| Typed governance only | Governance changes use `SetTreasuryConfigProposal`; arbitrary payload governance remains excluded. |
+| Stale proposal semantics | Proposals created under old `configVersion` values cannot approve, execute, or cancel after a config change. |
+| Governance deadlock prevention | Executed config must satisfy `1 <= payoutThreshold <= configThreshold <= ownerCount`. |
+| Config execution atomicity | Owner set, thresholds, fee reserve, and config version updates are applied atomically or rejected. |
 | Duplicate approval prevention | One owner can contribute at most one approval per proposal. |
 | Proposal ID uniqueness | Proposal IDs are monotonic and cannot overwrite existing proposals. |
 | Lifecycle terminal states | Executed, canceled, and expired proposals cannot be approved or executed later. |
@@ -51,7 +61,7 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 
 ## Known Evidence
 
-- Deterministic contract tests: hardening suite covers config bounds, message values, expiry bounds, recipient validation, terminal states, reserve behavior, and action-phase payout evidence.
+- Deterministic contract tests: hardening suite covers config bounds, governance/config proposal changes, stale `configVersion` semantics, message values, expiry bounds, recipient validation, terminal states, reserve behavior, and action-phase payout evidence.
 - Testnet deployment: `kQAEswTqc4bDarhACzMsgMhOXOgYcYHaXLLnwwOnMepqhSnA`.
 - Testnet manual flow: create proposal, second-owner approve, execute payout.
 - Proposal `0` final status: `Executed`.
