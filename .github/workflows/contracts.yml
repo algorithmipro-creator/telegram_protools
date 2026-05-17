@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - treasury-governance-config
   pull_request:
     branches:
       - main
