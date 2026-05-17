@@ -86,6 +86,16 @@ expiresAt
 configVersionAtCreation
 ```
 
+It may update only:
+
+- owners;
+- owner count;
+- payout threshold;
+- config threshold, only when `configThresholdMutable == true`;
+- fee reserve.
+
+It must not update `configThresholdMutable`; that flag is deploy-time only and immutable.
+
 Do not implement separate `AddOwner`, `RemoveOwner`, `ChangeThreshold`, or `SetFeeReserve` proposal types in the first governance implementation.
 
 Reason: separate partial actions can create unsafe intermediate states. Atomic config replacement validates the final state before any state mutation.
@@ -102,8 +112,7 @@ configThreshold
 Rules:
 
 ```text
-1 <= payoutThreshold <= ownerCount
-payoutThreshold <= configThreshold <= ownerCount
+1 <= payoutThreshold <= configThreshold <= ownerCount
 ```
 
 Payout proposals require `payoutThreshold`.
@@ -133,6 +142,8 @@ If `configThresholdMutable == false`, `configThreshold` is immutable forever.
 If `configThresholdMutable == true`, `configThreshold` can be changed only through `SetTreasuryConfigProposal`, approved under the current `configThreshold`.
 
 The flag itself is immutable. It must not be included in `SetTreasuryConfigProposal`.
+
+No proposal may later change this flag from immutable to mutable or from mutable to immutable.
 
 Default product posture:
 
@@ -183,16 +194,18 @@ Executed
 Cancelled
 ```
 
-Terminal status takes precedence over stale status.
-
-For pending proposals, view status order is:
+View status priority is:
 
 ```text
+Executed
+Cancelled
 Stale
 Expired
 Executable
 Pending
 ```
+
+Executed and cancelled proposals remain terminal and are not reclassified as stale. For non-terminal proposals, stale has priority over expired because a config change is the stronger security reason that execution is no longer valid.
 
 ### Decision 5: Typed Governance Only
 
@@ -221,8 +234,7 @@ struct Storage {
     proposalSeqno: uint64
     feeReserve: coins
     owners: map<address, uint8>
-    payoutProposals: map<uint64, Cell<PayoutProposal>>
-    configProposals: map<uint64, Cell<ConfigProposal>>
+    proposals: map<uint64, Cell<Proposal>>
     approvals: map<uint256, uint8>
 }
 ```
@@ -231,44 +243,76 @@ The existing testnet contract is not mainnet state. A storage schema migration i
 
 ## Proposed Proposal Shapes
 
-### Payout Proposal
+### Proposal Kind
 
 ```text
-struct PayoutProposal {
+enum ProposalKind {
+    PayoutTon
+    SetTreasuryConfig
+}
+```
+
+### Proposal Payload
+
+```text
+type ProposalPayload = PayoutTonPayload | SetTreasuryConfigPayload
+```
+
+### Generic Proposal
+
+Use one proposal envelope:
+
+```text
+struct Proposal {
     id: uint64
+    kind: ProposalKind
     creator: address
-    recipient: address
-    amount: coins
     createdAt: uint32
     expiresAt: uint32
     configVersionAtCreation: uint32
     status: ProposalStatus
     approvalCount: uint8
+    payload: ProposalPayload
+}
+```
+
+Proposal IDs are globally monotonic through one `proposalSeqno`.
+
+### Payout Payload
+
+```text
+struct PayoutTonPayload {
+    recipient: address
+    amount: coins
 }
 ```
 
 Payout approval and execution use `payoutThreshold`.
 
-### Config Proposal
+### Config Payload
 
 ```text
-struct ConfigProposal {
-    id: uint64
-    creator: address
+struct SetTreasuryConfigPayload {
     newOwnerCount: uint8
     newPayoutThreshold: uint8
     newConfigThreshold: uint8
     newFeeReserve: coins
     newOwners: map<address, uint8>
-    createdAt: uint32
-    expiresAt: uint32
-    configVersionAtCreation: uint32
-    status: ProposalStatus
-    approvalCount: uint8
 }
 ```
 
 Config approval and execution use `configThreshold`.
+
+## Required Threshold Function
+
+Phase 3 should centralize threshold lookup:
+
+```text
+requiredThreshold(PayoutTon) = storage.payoutThreshold
+requiredThreshold(SetTreasuryConfig) = storage.configThreshold
+```
+
+Approval, executable view status, cancellation checks, and execution checks must all use this function or an equivalent single implementation path.
 
 ## Config Validation
 
@@ -277,8 +321,8 @@ The final proposed config must pass all checks before storage is mutated:
 ```text
 MIN_OWNER_COUNT <= newOwnerCount <= MAX_OWNER_COUNT
 newOwnerMapCount == newOwnerCount
-1 <= newPayoutThreshold <= newOwnerCount
-newPayoutThreshold <= newConfigThreshold <= newOwnerCount
+newOwners contains no duplicate owner addresses
+1 <= newPayoutThreshold <= newConfigThreshold <= newOwnerCount
 newFeeReserve >= MIN_FEE_RESERVE
 ```
 
@@ -293,6 +337,8 @@ then:
 ```text
 newConfigThreshold == currentConfigThreshold
 ```
+
+This also prevents governance deadlock. A locked treasury cannot execute a proposal that removes enough owners to make the current config threshold impossible. For example, if current `configThreshold = 4` and `configThresholdMutable == false`, any proposal with `newOwnerCount < 4` must be rejected.
 
 If this check fails, execution and creation should reject with a dedicated error such as:
 
@@ -378,6 +424,8 @@ Required:
 - approval count is at least current `configThreshold`;
 - proposed config validates against current governance rules.
 
+The required threshold is the current `storage.configThreshold` at execution time. It is never the proposed future threshold, never `min(current, proposed)`, and never the payout threshold. If `configVersion` changed before execution, the proposal is stale and execution is impossible.
+
 Execution order:
 
 1. Load storage.
@@ -416,7 +464,7 @@ Phase 3 should include proposal kind in approval keys:
 approvalKey(proposalKind, proposalId, owner)
 ```
 
-This avoids ambiguity if proposal maps are separated by type and preserves clarity for audits.
+This preserves clarity for audits and prevents approval-key ambiguity even though proposal IDs are globally monotonic.
 
 Proposal IDs should remain globally monotonic through one `proposalSeqno`, shared by payout and config proposals.
 
@@ -435,9 +483,10 @@ config_version()
 proposal_seqno()
 fee_reserve()
 is_owner(address)
-payout_proposal(id)
-config_proposal(id)
-has_approval(proposalKind, id, owner)
+proposal(id)
+proposal_kind(id)
+proposal_required_threshold(id)
+has_approval(id, owner)
 ```
 
 View status should include:
@@ -467,6 +516,8 @@ currentConfigVersion
 status
 approvalCount
 requiredApprovalCount
+kind
+payload
 ```
 
 Off-chain UI may additionally compute:
@@ -475,6 +526,23 @@ Off-chain UI may additionally compute:
 - removed owners;
 - unchanged owners;
 - threshold changes.
+
+For payout proposals, the payload preview must expose:
+
+```text
+recipient
+amount
+```
+
+For config proposals, the payload preview must expose:
+
+```text
+newOwnerCount
+newOwners
+newPayoutThreshold
+newConfigThreshold
+newFeeReserve
+```
 
 These previews are UI helpers only. They must not affect on-chain execution.
 
@@ -496,6 +564,10 @@ Blocked. Changing `configThreshold` requires the current `configThreshold`. If `
 
 The first executed config proposal increments `configVersion`. Other pending config proposals created on the old version become stale.
 
+### Governance Deadlock By Removing Owners
+
+Blocked. The final config must satisfy `1 <= newPayoutThreshold <= newConfigThreshold <= newOwnerCount`. If `configThreshold` is locked, the final config must keep `newConfigThreshold == currentConfigThreshold`, so removing too many owners is rejected.
+
 ### Lower Fee Reserve Below Safe Minimum
 
 Blocked by `newFeeReserve >= MIN_FEE_RESERVE`.
@@ -507,6 +579,23 @@ Blocked by scope. Only typed `SetTreasuryConfigProposal` is allowed.
 ### Off-Chain UI Spoofing
 
 On-chain sender validation, typed messages, getters, and generated wrappers remain the source of truth. Telegram, backend, or cached metadata cannot grant owner rights.
+
+## Error Requirements
+
+Phase 3 should add or preserve these errors:
+
+```text
+Errors.InvalidOwnerCount
+Errors.DuplicateOwner
+Errors.InvalidPayoutThreshold
+Errors.InvalidConfigThreshold
+Errors.ConfigThresholdLocked
+Errors.InvalidFeeReserve
+Errors.ProposalStale
+Errors.InvalidProposalKind
+```
+
+Use `Errors.ProposalStale` for `configVersionAtCreation != storage.configVersion`. Do not add a separate `ConfigVersionMismatch` error in Phase 3 unless a later review decides finer diagnostics are worth the extra surface.
 
 ## Phase 3 Test Plan
 
@@ -520,7 +609,14 @@ Config validation tests:
 - config proposal rejects duplicate owners;
 - config proposal rejects owner count below minimum;
 - config proposal rejects owner count above maximum;
-- config proposal rejects fee reserve below minimum.
+- config proposal rejects fee reserve below minimum;
+- deploy with `configThresholdMutable = false` succeeds;
+- deploy with `configThresholdMutable = true` succeeds.
+
+Payout threshold tests:
+
+- payout proposal requires `payoutThreshold` approvals;
+- payout proposal does not require `configThreshold` approvals.
 
 Config proposal lifecycle tests:
 
@@ -529,6 +625,7 @@ Config proposal lifecycle tests:
 - second owner approves config proposal;
 - duplicate config approval is rejected;
 - config proposal is executable only at `configThreshold`;
+- config proposal cannot execute with only `payoutThreshold` approvals when `payoutThreshold < configThreshold`;
 - executable config proposal cannot be cancelled;
 - executed config proposal cannot execute twice;
 - expired config proposal cannot be approved;
@@ -539,6 +636,8 @@ Config execution tests:
 - execution atomically updates owners, owner count, payout threshold, config threshold when mutable, fee reserve, and config version;
 - execution rejects config threshold change when `configThresholdMutable` is false;
 - execution allows config threshold change when `configThresholdMutable` is true and current `configThreshold` is met;
+- execution of a config threshold decrease still requires the old/current `configThreshold`;
+- execution keeps `configThreshold` unchanged when locked;
 - removed owner cannot approve new proposals after execution;
 - added owner can approve new proposals after execution;
 - old payout proposal becomes stale after config execution;
@@ -548,6 +647,12 @@ Config execution tests:
 - stale proposal cannot be created or forced by a message field;
 - stale status is derived from `configVersionAtCreation` and current `configVersion`, not stored as mutable proposal state;
 - stale proposal view status is `Stale`.
+
+Deadlock prevention tests:
+
+- reject config proposal where `newOwnerCount < current configThreshold` while `configThresholdMutable == false`;
+- reject config proposal where `newConfigThreshold > newOwnerCount`;
+- reject owner removal that would make the final `configThreshold` impossible.
 
 Payout compatibility tests:
 
@@ -559,6 +664,7 @@ Payout compatibility tests:
 Getter and wrapper tests:
 
 - getters expose payout threshold, config threshold, mutability flag, config version, and typed proposal views;
+- getters expose proposal kind and required threshold;
 - generated wrappers expose new messages, statuses, errors, and getters.
 
 ## Documentation Updates For Phase 3
