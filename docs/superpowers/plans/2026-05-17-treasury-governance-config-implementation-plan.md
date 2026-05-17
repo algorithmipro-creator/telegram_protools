@@ -957,6 +957,7 @@ config proposal requires configThreshold approvals
 config proposal cannot execute with only payoutThreshold approvals
 creator auto approval counts for config proposal
 execution of config threshold decrease still requires old current configThreshold
+config proposal execution does not require proposed future configThreshold
 ```
 
 Use a helper that deploys 3 owners:
@@ -1003,8 +1004,12 @@ execute SetTreasuryConfig updates feeReserve
 execute SetTreasuryConfig increments configVersion
 execute SetTreasuryConfig keeps configThreshold unchanged when locked
 execute SetTreasuryConfig updates configThreshold when mutable
+execute SetTreasuryConfig marks proposal Executed
+executed config proposal cannot be executed twice
 removed owner cannot approve new proposals after execution
 added owner can approve new proposals after execution
+old pending payout proposal becomes Stale after config execution
+old pending config proposal becomes Stale after another config execution
 ```
 
 - [ ] **Step 3: Implement approval threshold checks**
@@ -1042,17 +1047,27 @@ if (proposal.kind == ProposalKind.SetTreasuryConfig) {
 
 Preserve payout execution in the `PayoutTon` branch.
 
+Important execution rules:
+
+- Required approvals must be checked against the current `storage.configThreshold`, never the proposed future threshold.
+- The proposed config must have no effect unless `ExecuteProposal` succeeds.
+- The config update and proposal terminal status update must happen in one successful transaction.
+- After `configVersion` increments, existing pending proposals with older `configVersionAtCreation` are stale by derived view/status logic.
+
 - [ ] **Step 5: Run execution tests**
 
 Run:
 
 ```powershell
 wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test --filter 'config proposal requires|cannot execute with only payout|execute SetTreasuryConfig|removed owner|added owner|config threshold decrease'"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton check"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton fmt --check"
 ```
 
 Expected:
 
-- selected config approval and execution tests pass.
+- selected config approval and execution tests, full tests, contract checks, and formatting pass.
 
 - [ ] **Step 6: Commit**
 
