@@ -294,6 +294,9 @@ Expected:
 - Modify `contracts/types.tolk`
 - Modify `contracts/Treasury.tolk`
 - Modify `tests/contract.test.tolk`
+- Modify `scripts/deploy.tolk`
+- Regenerate `wrappers/Treasury.gen.tolk`
+- Regenerate `wrappers-ts/Treasury.gen.ts`
 
 - [ ] **Step 1: Add constants and errors**
 
@@ -396,7 +399,18 @@ approvals: [],
 
 Update all existing `Storage { threshold: ... }` test literals to the new fields.
 
-- [ ] **Step 6: Add new getters**
+- [ ] **Step 6: Update deploy storage literal**
+
+In `scripts/deploy.tolk`, replace the old `threshold` initialization with the new config fields:
+
+```tolk
+payoutThreshold: 2,
+configThreshold: 2,
+configThresholdMutable: false,
+configVersion: 0,
+```
+
+- [ ] **Step 7: Add new getters**
 
 In `contracts/Treasury.tolk`, replace `threshold()` getter with:
 
@@ -422,24 +436,37 @@ get fun config_version(): uint32 {
 }
 ```
 
-- [ ] **Step 7: Run validation tests**
+- [ ] **Step 8: Regenerate wrappers**
+
+Run wrapper generation through Acton tooling:
+
+```powershell
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton wrapper Treasury"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton wrapper Treasury --ts --output-dir wrappers-ts"
+```
+
+Do not keep test-local getter shims after generated wrappers expose the new getters.
+
+- [ ] **Step 9: Run validation tests**
 
 Run:
 
 ```powershell
 wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test --filter 'deploy exposes|invalid treasury config|owner count|zero threshold|payout threshold above|config threshold above|mutable true deploy'"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton script scripts/deploy.tolk"
 ```
 
 Expected:
 
-- selected tests pass.
+- selected tests, full tests, and deploy emulation pass.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 10: Commit**
 
 Run:
 
 ```powershell
-git add contracts/types.tolk contracts/Treasury.tolk tests/contract.test.tolk
+git add contracts/types.tolk contracts/Treasury.tolk tests/contract.test.tolk scripts/deploy.tolk wrappers/Treasury.gen.tolk wrappers-ts/Treasury.gen.ts
 git commit -m "feat: add Treasury governance config primitives"
 ```
 
