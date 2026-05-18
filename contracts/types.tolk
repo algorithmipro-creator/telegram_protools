@@ -38,6 +38,7 @@ enum Errors {
     InvalidFeeReserve = 148
     ProposalStale = 149
     InvalidProposalKind = 150
+    ProposalLimitReached = 153
 }
 
 enum ProposalStatus: uint8 {

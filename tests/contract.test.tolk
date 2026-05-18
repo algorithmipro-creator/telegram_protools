@@ -515,6 +515,82 @@ get fun `test config proposal creator approval is stored in proposal approval ma
     expect(contract.hasApproval(0, ownerA.address)).toEqual(true);
 }
 
+get fun `test retained proposal count increments on payout create`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    expect(retainedProposalCount(contract)).toEqual(0);
+
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    expect(retainedProposalCount(contract)).toEqual(1);
+}
+
+get fun `test retained proposal count increments on config create`() {
+    val (contract, ownerA, ownerB, _) = setupTreasuryMutableConfig();
+    val newOwners = twoOwners(ownerA, ownerB);
+    expect(retainedProposalCount(contract)).toEqual(0);
+
+    val res = contract.sendCreateConfigProposal(
+        ownerA.address,
+        2,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    expect(retainedProposalCount(contract)).toEqual(1);
+}
+
+get fun `test proposal cap blocks payout proposal create`() {
+    val (contract, ownerA, _, outsider) = setupTreasuryAtProposalCap(false);
+
+    val res = contract.sendCreatePayoutProposal(
+        ownerA.address,
+        outsider.address,
+        ton("0.20"),
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveFailedTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalLimitReached,
+    });
+    expect(retainedProposalCount(contract)).toEqual(MAX_RETAINED_PROPOSALS);
+    expect(contract.proposalSeqno()).toEqual(0);
+}
+
+get fun `test proposal cap blocks config proposal create`() {
+    val (contract, ownerA, ownerB, _) = setupTreasuryAtProposalCap(true);
+    val newOwners = twoOwners(ownerA, ownerB);
+
+    val res = contract.sendCreateConfigProposal(
+        ownerA.address,
+        2,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveFailedTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalLimitReached,
+    });
+    expect(retainedProposalCount(contract)).toEqual(MAX_RETAINED_PROPOSALS);
+    expect(contract.proposalSeqno()).toEqual(0);
+}
+
 get fun `test proposal kind getter returns payout kind for payout proposal`() {
     val (contract, ownerA, _, _, outsider) = setupThreeOwnerTreasury(1, 3, true);
 
@@ -2236,6 +2312,36 @@ fun setupThreeOwnerTreasury(
     return (contract, ownerA, ownerB, ownerC, outsider);
 }
 
+fun setupTreasuryAtProposalCap(
+    mutable: bool,
+): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
+    val ownerA = testTreasury("capOwnerA");
+    val ownerB = testTreasury("capOwnerB");
+    val outsider = testTreasury("capOutsider");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 2,
+        configThreshold: 2,
+        configThresholdMutable: mutable,
+        configVersion: 0,
+        proposalSeqno: 0,
+        retainedProposalCount: MAX_RETAINED_PROPOSALS,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveSuccessfulDeploy({ to: contract.address });
+
+    return (contract, ownerA, ownerB, outsider);
+}
+
 fun twoOwners(ownerA: TestTreasury, ownerB: TestTreasury): map<address, uint8> {
     var owners: map<address, uint8> = [];
     owners.set(ownerA.address, OWNER_INDEX_0);
@@ -2353,6 +2459,10 @@ fun executeProposal(contract: Treasury, owner: TestTreasury, proposalId: uint64)
         from: owner.address,
         to: contract.address,
     });
+}
+
+fun retainedProposalCount(contract: Treasury): uint16 {
+    return net.runGetMethod(contract.address, "retained_proposal_count");
 }
 
 fun expectSuccessfulPayoutActionPhase(res: SendResultList) {

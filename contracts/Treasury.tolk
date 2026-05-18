@@ -21,6 +21,9 @@ fun onInternalMessage(in: InMessage) {
             storage.assertValidConfig();
             requireMinValue(in.valueCoins, MIN_CREATE_VALUE);
             storage.assertOwner(in.senderAddress);
+            assert (
+                storage.retainedProposalCount < MAX_RETAINED_PROPOSALS
+            ) throw Errors.ProposalLimitReached;
             val now = blockchain.now();
             assert (msg.recipient != contract.getAddress()) throw Errors.InvalidRecipient;
             assert (msg.amount > 0) throw Errors.InvalidAmount;
@@ -45,6 +48,7 @@ fun onInternalMessage(in: InMessage) {
             };
 
             storage.proposals.set(proposalId, proposal.toCell());
+            storage.retainedProposalCount = storage.retainedProposalCount + 1;
             storage.proposalSeqno = proposalId + 1;
             storage.save();
         }
@@ -53,6 +57,9 @@ fun onInternalMessage(in: InMessage) {
             storage.assertValidConfig();
             requireMinValue(in.valueCoins, MIN_CREATE_VALUE);
             storage.assertOwner(in.senderAddress);
+            assert (
+                storage.retainedProposalCount < MAX_RETAINED_PROPOSALS
+            ) throw Errors.ProposalLimitReached;
             val now = blockchain.now();
             assert (msg.expiresAt > now) throw Errors.InvalidExpiry;
             assert (msg.expiresAt <= now + MAX_EXPIRY_SECONDS) throw Errors.InvalidExpiry;
@@ -85,6 +92,7 @@ fun onInternalMessage(in: InMessage) {
             };
 
             storage.proposals.set(proposalId, proposal.toCell());
+            storage.retainedProposalCount = storage.retainedProposalCount + 1;
             storage.proposalSeqno = proposalId + 1;
             storage.save();
         }
@@ -229,6 +237,11 @@ get fun config_version(): uint32 {
 get fun proposal_seqno(): uint64 {
     val storage = lazy Storage.load();
     return storage.proposalSeqno;
+}
+
+get fun retained_proposal_count(): uint16 {
+    val storage = lazy Storage.load();
+    return storage.retainedProposalCount;
 }
 
 get fun fee_reserve(): coins {
