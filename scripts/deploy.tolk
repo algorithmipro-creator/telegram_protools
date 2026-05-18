@@ -29,7 +29,6 @@ fun main() {
             feeReserve: DEFAULT_FEE_RESERVE,
             owners,
             proposals: [],
-            approvals: [],
         }.toCell(),
     };
     val address = AutoDeployAddress { stateInit }.calculateAddress();

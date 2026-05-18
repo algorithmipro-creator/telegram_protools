@@ -1,7 +1,6 @@
 const OWNER_INDEX_0: uint8 = 0
 const OWNER_INDEX_1: uint8 = 1
 const OWNER_INDEX_2: uint8 = 2
-const APPROVAL_KEY_VALUE: uint8 = 1
 const MIN_OWNER_COUNT: uint8 = 2
 const MAX_OWNER_COUNT: uint8 = 10
 const MAX_RETAINED_PROPOSALS: uint16 = 100
@@ -85,6 +84,7 @@ struct Proposal {
     configVersionAtCreation: uint32
     status: ProposalStatus
     approvalCount: uint8
+    approvalMask: uint16
     payload: ProposalPayload
 }
 
@@ -98,6 +98,7 @@ struct ProposalView {
     currentConfigVersion: uint32
     status: ProposalViewStatus
     approvalCount: uint8
+    approvalMask: uint16
     requiredApprovalCount: uint8
     payoutRecipient: address
     payoutAmount: coins
@@ -120,7 +121,6 @@ struct Storage {
     feeReserve: coins
     owners: map<address, uint8>
     proposals: map<uint64, Cell<Proposal>>
-    approvals: map<uint256, uint8>
 }
 
 fun Storage.load(): Storage {
@@ -217,15 +217,6 @@ fun Storage.ownerApprovalBit(self, owner: address): uint16 {
     return (1 as uint16) << index;
 }
 
-fun approvalKey(kind: ProposalKind, proposalId: uint64, owner: address): uint256 {
-    return beginCell()
-        .storeUint(kind as int, 8)
-        .storeUint(proposalId, 64)
-        .storeAddress(owner)
-        .endCell()
-        .hash();
-}
-
 fun Storage.mustGetProposal(self, proposalId: uint64): Proposal {
     val proposalCell = self.proposals.mustGet(proposalId, Errors.ProposalNotFound);
     return proposalCell.load();
@@ -294,6 +285,7 @@ fun Proposal.toView(self, currentConfigVersion: uint32, threshold: uint8): Propo
         currentConfigVersion,
         status: self.viewStatus(currentConfigVersion, threshold),
         approvalCount: self.approvalCount,
+        approvalMask: self.approvalMask,
         requiredApprovalCount: threshold,
         payoutRecipient,
         payoutAmount,

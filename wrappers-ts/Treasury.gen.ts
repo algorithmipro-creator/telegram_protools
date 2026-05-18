@@ -140,7 +140,6 @@ type uint8 = bigint
 type uint16 = bigint
 type uint32 = bigint
 type uint64 = bigint
-type uint256 = bigint
 
 /**
  > enum ProposalStatus { 3 variants }
@@ -344,6 +343,7 @@ export const ProposalPayload = {
  >     configVersionAtCreation: uint32
  >     status: ProposalStatus
  >     approvalCount: uint8
+ >     approvalMask: uint16
  >     payload: ProposalPayload
  > }
  */
@@ -357,6 +357,7 @@ export interface Proposal {
     configVersionAtCreation: uint32
     status: ProposalStatus
     approvalCount: uint8
+    approvalMask: uint16
     payload: ProposalPayload
 }
 
@@ -370,6 +371,7 @@ export const Proposal = {
         configVersionAtCreation: uint32
         status: ProposalStatus
         approvalCount: uint8
+        approvalMask: uint16
         payload: ProposalPayload
     }): Proposal {
         return {
@@ -388,6 +390,7 @@ export const Proposal = {
             configVersionAtCreation: s.loadUintBig(32),
             status: ProposalStatus.fromSlice(s),
             approvalCount: s.loadUintBig(8),
+            approvalMask: s.loadUintBig(16),
             payload: ProposalPayload.fromSlice(s),
         }
     },
@@ -400,6 +403,7 @@ export const Proposal = {
         b.storeUint(self.configVersionAtCreation, 32);
         ProposalStatus.store(self.status, b);
         b.storeUint(self.approvalCount, 8);
+        b.storeUint(self.approvalMask, 16);
         ProposalPayload.store(self.payload, b);
     },
     toCell(self: Proposal): c.Cell {
@@ -418,6 +422,7 @@ export const Proposal = {
  >     currentConfigVersion: uint32
  >     status: ProposalViewStatus
  >     approvalCount: uint8
+ >     approvalMask: uint16
  >     requiredApprovalCount: uint8
  >     payoutRecipient: address
  >     payoutAmount: coins
@@ -440,6 +445,7 @@ export interface ProposalView {
     currentConfigVersion: uint32
     status: ProposalViewStatus
     approvalCount: uint8
+    approvalMask: uint16
     requiredApprovalCount: uint8
     payoutRecipient: c.Address
     payoutAmount: coins
@@ -462,6 +468,7 @@ export const ProposalView = {
         currentConfigVersion: uint32
         status: ProposalViewStatus
         approvalCount: uint8
+        approvalMask: uint16
         requiredApprovalCount: uint8
         payoutRecipient: c.Address
         payoutAmount: coins
@@ -489,6 +496,7 @@ export const ProposalView = {
             currentConfigVersion: s.loadUintBig(32),
             status: ProposalViewStatus.fromSlice(s),
             approvalCount: s.loadUintBig(8),
+            approvalMask: s.loadUintBig(16),
             requiredApprovalCount: s.loadUintBig(8),
             payoutRecipient: s.loadAddress(),
             payoutAmount: s.loadCoins(),
@@ -510,6 +518,7 @@ export const ProposalView = {
         b.storeUint(self.currentConfigVersion, 32);
         ProposalViewStatus.store(self.status, b);
         b.storeUint(self.approvalCount, 8);
+        b.storeUint(self.approvalMask, 16);
         b.storeUint(self.requiredApprovalCount, 8);
         b.storeAddress(self.payoutRecipient);
         b.storeCoins(self.payoutAmount);
@@ -537,7 +546,6 @@ export const ProposalView = {
  >     feeReserve: coins
  >     owners: map<address, uint8>
  >     proposals: map<uint64, Cell<Proposal>>
- >     approvals: map<uint256, uint8>
  > }
  */
 export interface Storage {
@@ -552,7 +560,6 @@ export interface Storage {
     feeReserve: coins
     owners: c.Dictionary<c.Address, uint8>
     proposals: c.Dictionary<uint64, CellRef<Proposal>>
-    approvals: c.Dictionary<uint256, uint8>
 }
 
 export const Storage = {
@@ -567,7 +574,6 @@ export const Storage = {
         feeReserve: coins
         owners: c.Dictionary<c.Address, uint8>
         proposals: c.Dictionary<uint64, CellRef<Proposal>>
-        approvals: c.Dictionary<uint256, uint8>
     }): Storage {
         return {
             $: 'Storage',
@@ -590,7 +596,6 @@ export const Storage = {
                 (s) => loadCellRef<Proposal>(s, Proposal.fromSlice),
                 (v,b) => storeCellRef<Proposal>(v, b, Proposal.store)
             ), s),
-            approvals: c.Dictionary.load<uint256, uint8>(c.Dictionary.Keys.BigUint(256), c.Dictionary.Values.BigUint(8), s),
         }
     },
     store(self: Storage, b: c.Builder): void {
@@ -607,7 +612,6 @@ export const Storage = {
             (s) => loadCellRef<Proposal>(s, Proposal.fromSlice),
             (v,b) => storeCellRef<Proposal>(v, b, Proposal.store)
         ));
-        b.storeDict<uint256, uint8>(self.approvals, c.Dictionary.Keys.BigUint(256), c.Dictionary.Values.BigUint(8));
     },
     toCell(self: Storage): c.Cell {
         return makeCellFrom<Storage>(self, Storage.store);
@@ -873,7 +877,7 @@ function calculateDeployedAddress(code: c.Cell, data: c.Cell, options: DeployedA
 }
 
 export class Treasury implements c.Contract {
-    static CodeCell = c.Cell.fromBase64('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');
+    static CodeCell = c.Cell.fromBase64('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');
 
     static Errors = {
         'Errors.NotOwner': 128,
@@ -923,7 +927,6 @@ export class Treasury implements c.Contract {
         feeReserve: coins
         owners: c.Dictionary<c.Address, uint8>
         proposals: c.Dictionary<uint64, CellRef<Proposal>>
-        approvals: c.Dictionary<uint256, uint8>
     }, deployedOptions?: DeployedAddrOptions) {
         const initialState = {
             code: deployedOptions?.overrideContractCode ?? Treasury.CodeCell,
@@ -1080,7 +1083,7 @@ export class Treasury implements c.Contract {
     }
 
     async getProposal(provider: ContractProvider, proposalId: uint64): Promise<ProposalView> {
-        const r = StackReader.fromGetMethod(18, await provider.get('proposal', [
+        const r = StackReader.fromGetMethod(19, await provider.get('proposal', [
             { type: 'int', value: proposalId },
         ]));
         return ({
@@ -1094,6 +1097,7 @@ export class Treasury implements c.Contract {
             currentConfigVersion: r.readBigInt(),
             status: r.readBigInt(),
             approvalCount: r.readBigInt(),
+            approvalMask: r.readBigInt(),
             requiredApprovalCount: r.readBigInt(),
             payoutRecipient: r.readSlice().loadAddress(),
             payoutAmount: r.readBigInt(),

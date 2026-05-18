@@ -37,7 +37,6 @@ fun main() {
             feeReserve: DEFAULT_FEE_RESERVE,
             owners,
             proposals: [],
-            approvals: [],
         }.toCell(),
     };
     val treasuryAddress = AutoDeployAddress { stateInit }.calculateAddress();

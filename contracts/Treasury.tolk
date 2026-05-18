@@ -37,6 +37,7 @@ fun onInternalMessage(in: InMessage) {
                 configVersionAtCreation: storage.configVersion,
                 status: ProposalStatus.Pending,
                 approvalCount: 1,
+                approvalMask: storage.ownerApprovalBit(in.senderAddress),
                 payload: PayoutTonPayload {
                     recipient: msg.recipient,
                     amount: msg.amount,
@@ -44,12 +45,6 @@ fun onInternalMessage(in: InMessage) {
             };
 
             storage.proposals.set(proposalId, proposal.toCell());
-            storage
-                .approvals
-                .set(
-                    approvalKey(proposal.kind, proposalId, in.senderAddress),
-                    APPROVAL_KEY_VALUE,
-                );
             storage.proposalSeqno = proposalId + 1;
             storage.save();
         }
@@ -79,6 +74,7 @@ fun onInternalMessage(in: InMessage) {
                 configVersionAtCreation: storage.configVersion,
                 status: ProposalStatus.Pending,
                 approvalCount: 1,
+                approvalMask: storage.ownerApprovalBit(in.senderAddress),
                 payload: SetTreasuryConfigPayload {
                     newOwnerCount: msg.newOwnerCount,
                     newPayoutThreshold: msg.newPayoutThreshold,
@@ -89,12 +85,6 @@ fun onInternalMessage(in: InMessage) {
             };
 
             storage.proposals.set(proposalId, proposal.toCell());
-            storage
-                .approvals
-                .set(
-                    approvalKey(proposal.kind, proposalId, in.senderAddress),
-                    APPROVAL_KEY_VALUE,
-                );
             storage.proposalSeqno = proposalId + 1;
             storage.save();
         }
@@ -110,10 +100,10 @@ fun onInternalMessage(in: InMessage) {
             assert (!proposal.isStale(storage.configVersion)) throw Errors.ProposalStale;
             assert (!proposal.isExpired()) throw Errors.ProposalExpired;
 
-            val key = approvalKey(proposal.kind, msg.proposalId, in.senderAddress);
-            assert (!storage.approvals.exists(key)) throw Errors.AlreadyApproved;
+            val approvalBit = storage.ownerApprovalBit(in.senderAddress);
+            assert ((proposal.approvalMask & approvalBit) == 0) throw Errors.AlreadyApproved;
 
-            storage.approvals.set(key, APPROVAL_KEY_VALUE);
+            proposal.approvalMask = proposal.approvalMask | approvalBit;
             proposal.approvalCount = proposal.approvalCount + 1;
             storage.proposals.set(msg.proposalId, proposal.toCell());
             storage.save();
@@ -281,5 +271,6 @@ get fun proposal_config_owners(proposalId: uint64): map<address, uint8> {
 get fun has_approval(proposalId: uint64, owner: address): bool {
     val storage = lazy Storage.load();
     val proposal = storage.mustGetProposal(proposalId);
-    return storage.approvals.exists(approvalKey(proposal.kind, proposalId, owner));
+    val approvalBit = storage.ownerApprovalBit(owner);
+    return (proposal.approvalMask & approvalBit) != 0;
 }
