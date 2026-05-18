@@ -625,16 +625,8 @@ get fun `test proposal status getter returns matching not found and pruned statu
     val (emptyContract, _, _, _) = setupTreasury();
     val (prunedContract, _, _, _) = setupTreasuryWithMissingProposalBelowSeqno();
 
-    val notFoundStatus: ProposalViewStatus = net.runGetMethod(
-        emptyContract.address,
-        "proposal_status",
-        [0],
-    );
-    val prunedStatus: ProposalViewStatus = net.runGetMethod(
-        prunedContract.address,
-        "proposal_status",
-        [0],
-    );
+    val notFoundStatus = emptyContract.proposalStatus(0);
+    val prunedStatus = prunedContract.proposalStatus(0);
 
     expect(notFoundStatus).toEqual(emptyContract.proposal(0).status);
     expect(prunedStatus).toEqual(prunedContract.proposal(0).status);

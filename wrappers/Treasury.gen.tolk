@@ -182,6 +182,10 @@ fun Treasury.proposal(self, proposalId: uint64): ProposalView {
     return net.runGetMethod(self.address, "proposal", [proposalId]);
 }
 
+fun Treasury.proposalStatus(self, proposalId: uint64): ProposalViewStatus {
+    return net.runGetMethod(self.address, "proposal_status", [proposalId]);
+}
+
 fun Treasury.proposalKind(self, proposalId: uint64): ProposalKind {
     return net.runGetMethod(self.address, "proposal_kind", [proposalId]);
 }
