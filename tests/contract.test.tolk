@@ -1916,7 +1916,7 @@ get fun `test execute payout action phase succeeds`() {
 }
 
 get fun `test stale proposal cannot be approved`() {
-    val (contract, ownerA, ownerB, _) = setupTreasuryWithSeededProposal(
+    val (contract, _, ownerB, _) = setupTreasuryWithSeededProposal(
         ProposalStatus.Pending,
         1,
         blockchain.now() + DEFAULT_EXPIRY_SECONDS,
@@ -1929,7 +1929,7 @@ get fun `test stale proposal cannot be approved`() {
         exitCode: Errors.ProposalStale,
     });
     expect(contract.proposal(0).approvalCount).toEqual(1);
-    expect(contract.hasApproval(0, ownerA.address)).toBeTrue();
+    expect(contract.proposal(0).approvalMask).toEqual(1);
 }
 
 get fun `test stale proposal keeps approval mask after owner set changes`() {
@@ -1960,7 +1960,6 @@ get fun `test stale proposal keeps approval mask after owner set changes`() {
     expect(oldProposal.status).toEqual(ProposalViewStatus.Stale);
     expect(oldProposal.approvalCount).toEqual(1);
     expect(oldProposal.approvalMask).toEqual(1);
-    expect(contract.hasApproval(0, ownerC.address)).toBeFalse();
 
     val approval = contract.sendApproveProposal(ownerC.address, 0, { value: MIN_APPROVE_VALUE });
     expect(approval).toHaveFailedTx<ApproveProposal>({
@@ -1975,6 +1974,38 @@ get fun `test stale proposal keeps approval mask after owner set changes`() {
         to: contract.address,
         exitCode: Errors.ProposalStale,
     });
+}
+
+get fun `test has approval is false for stale proposal after owner index reuse`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasury();
+    val replacementOwners = twoOwners(ownerA, ownerC);
+
+    createProposal(contract, ownerA, ownerB.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+    expect(contract.proposal(0).approvalMask).toEqual(3);
+
+    val createConfig = contract.sendCreateConfigProposal(
+        ownerA.address,
+        2,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        replacementOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(createConfig).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    approveProposal(contract, ownerB, 1);
+    executeProposal(contract, ownerA, 1);
+
+    val oldProposal = contract.proposal(0);
+    expect(oldProposal.status).toEqual(ProposalViewStatus.Stale);
+    expect(oldProposal.approvalMask).toEqual(3);
+    expect(contract.hasApproval(0, ownerB.address)).toBeFalse();
+    expect(contract.hasApproval(0, ownerC.address)).toBeFalse();
 }
 
 get fun `test new proposal after config change uses new owner approval bits`() {

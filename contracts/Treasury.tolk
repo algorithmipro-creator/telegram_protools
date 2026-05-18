@@ -271,6 +271,9 @@ get fun proposal_config_owners(proposalId: uint64): map<address, uint8> {
 get fun has_approval(proposalId: uint64, owner: address): bool {
     val storage = lazy Storage.load();
     val proposal = storage.mustGetProposal(proposalId);
+    if (proposal.isStale(storage.configVersion)) {
+        return false;
+    }
     val approvalBit = storage.ownerApprovalBit(owner);
     return (proposal.approvalMask & approvalBit) != 0;
 }
