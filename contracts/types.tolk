@@ -1,7 +1,10 @@
-const OWNER_KEY_VALUE: uint8 = 1
+const OWNER_INDEX_0: uint8 = 0
+const OWNER_INDEX_1: uint8 = 1
+const OWNER_INDEX_2: uint8 = 2
 const APPROVAL_KEY_VALUE: uint8 = 1
 const MIN_OWNER_COUNT: uint8 = 2
 const MAX_OWNER_COUNT: uint8 = 10
+const MAX_RETAINED_PROPOSALS: uint16 = 100
 const DEFAULT_EXPIRY_SECONDS: uint32 = 86400
 const MAX_EXPIRY_SECONDS: uint32 = 2592000
 const DEFAULT_FEE_RESERVE: coins = ton("0.10")
@@ -10,6 +13,7 @@ const MIN_CREATE_VALUE: coins = ton("0.05")
 const MIN_APPROVE_VALUE: coins = ton("0.05")
 const MIN_CANCEL_VALUE: coins = ton("0.05")
 const MIN_EXECUTE_VALUE: coins = ton("0.05")
+const MIN_PRUNE_VALUE: coins = ton("0.05")
 
 enum Errors {
     NotOwner = 128
@@ -112,6 +116,7 @@ struct Storage {
     configThresholdMutable: bool
     configVersion: uint32
     proposalSeqno: uint64
+    retainedProposalCount: uint16
     feeReserve: coins
     owners: map<address, uint8>
     proposals: map<uint64, Cell<Proposal>>
@@ -130,6 +135,7 @@ fun Storage.assertValidConfig(self) {
     assert (self.ownerCount >= MIN_OWNER_COUNT) throw Errors.InvalidOwnerCount;
     assert (self.ownerCount <= MAX_OWNER_COUNT) throw Errors.InvalidOwnerCount;
     assert (self.ownerMapCount() == self.ownerCount) throw Errors.DuplicateOwner;
+    ownerIndexMask(self.owners, self.ownerCount);
     assert (self.payoutThreshold > 0) throw Errors.InvalidPayoutThreshold;
     assert (self.configThreshold > 0) throw Errors.InvalidConfigThreshold;
     assert (self.payoutThreshold <= self.configThreshold) throw Errors.InvalidConfigThreshold;
@@ -148,6 +154,7 @@ fun Storage.assertValidProposedConfig(
     assert (newOwnerCount >= MIN_OWNER_COUNT) throw Errors.InvalidOwnerCount;
     assert (newOwnerCount <= MAX_OWNER_COUNT) throw Errors.InvalidOwnerCount;
     assert (ownerMapCount(newOwners) == newOwnerCount) throw Errors.DuplicateOwner;
+    ownerIndexMask(newOwners, newOwnerCount);
     assert (newPayoutThreshold > 0) throw Errors.InvalidPayoutThreshold;
     assert (newPayoutThreshold <= newConfigThreshold) throw Errors.InvalidConfigThreshold;
     assert (newConfigThreshold <= newOwnerCount) throw Errors.InvalidConfigThreshold;
@@ -171,6 +178,20 @@ fun Storage.ownerMapCount(self): int {
     return ownerMapCount(self.owners);
 }
 
+fun ownerIndexMask(owners: map<address, uint8>, ownerCount: uint8): uint16 {
+    var mask: uint16 = 0;
+    var entry = owners.findFirst();
+    while (entry.isFound) {
+        val index = entry.loadValue();
+        assert (index < ownerCount) throw Errors.InvalidOwnerCount;
+        val bit = (1 as uint16) << index;
+        assert ((mask & bit) == 0) throw Errors.DuplicateOwner;
+        mask = mask | bit;
+        entry = owners.iterateNext(entry);
+    }
+    return mask;
+}
+
 fun Storage.isOwner(self, owner: address): bool {
     return self.owners.exists(owner);
 }
@@ -188,6 +209,12 @@ fun Storage.requiredThreshold(self, kind: ProposalKind): uint8 {
     }
     assert (false) throw Errors.InvalidProposalKind;
     return 0;
+}
+
+fun Storage.ownerApprovalBit(self, owner: address): uint16 {
+    val index = self.owners.mustGet(owner, Errors.NotOwner);
+    assert (index < self.ownerCount) throw Errors.InvalidOwnerCount;
+    return (1 as uint16) << index;
 }
 
 fun approvalKey(kind: ProposalKind, proposalId: uint64, owner: address): uint256 {

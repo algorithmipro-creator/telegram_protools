@@ -54,8 +54,8 @@ get fun `test invalid treasury config is rejected`() {
     val ownerB = testTreasury("invalidOwnerB");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val badThreshold = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -64,6 +64,7 @@ get fun `test invalid treasury config is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
@@ -77,7 +78,7 @@ get fun `test invalid treasury config is rejected`() {
     });
 
     var duplicateCollapsedOwners: map<address, uint8> = [];
-    duplicateCollapsedOwners.set(ownerA.address, OWNER_KEY_VALUE);
+    duplicateCollapsedOwners.set(ownerA.address, OWNER_INDEX_0);
     val duplicateCollapsed = Treasury.fromStorage(Storage {
         ownerCount: 2,
         payoutThreshold: 1,
@@ -85,6 +86,7 @@ get fun `test invalid treasury config is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners: duplicateCollapsedOwners,
         proposals: [],
@@ -98,11 +100,71 @@ get fun `test invalid treasury config is rejected`() {
     });
 }
 
+get fun `test duplicate owner indexes are rejected`() {
+    val ownerA = testTreasury("duplicateIndexOwnerA");
+    val ownerB = testTreasury("duplicateIndexOwnerB");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, 0);
+    owners.set(ownerB.address, 0);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 2,
+        configThreshold: 2,
+        configThresholdMutable: false,
+        configVersion: 0,
+        proposalSeqno: 0,
+        retainedProposalCount: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+        approvals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveFailedTx({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.DuplicateOwner,
+    });
+}
+
+get fun `test owner index outside owner count is rejected`() {
+    val ownerA = testTreasury("badIndexOwnerA");
+    val ownerB = testTreasury("badIndexOwnerB");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, 0);
+    owners.set(ownerB.address, 2);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 2,
+        configThreshold: 2,
+        configThresholdMutable: false,
+        configVersion: 0,
+        proposalSeqno: 0,
+        retainedProposalCount: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+        approvals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveFailedTx({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidOwnerCount,
+    });
+}
+
 get fun `test owner count below minimum is rejected`() {
     val ownerA = testTreasury("singleOwnerA");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: MIN_OWNER_COUNT - 1,
@@ -111,6 +173,7 @@ get fun `test owner count below minimum is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
@@ -139,17 +202,17 @@ get fun `test owner count above maximum is rejected`() {
     val owner11 = testTreasury("maxOwner11");
 
     var owners: map<address, uint8> = [];
-    owners.set(owner1.address, OWNER_KEY_VALUE);
-    owners.set(owner2.address, OWNER_KEY_VALUE);
-    owners.set(owner3.address, OWNER_KEY_VALUE);
-    owners.set(owner4.address, OWNER_KEY_VALUE);
-    owners.set(owner5.address, OWNER_KEY_VALUE);
-    owners.set(owner6.address, OWNER_KEY_VALUE);
-    owners.set(owner7.address, OWNER_KEY_VALUE);
-    owners.set(owner8.address, OWNER_KEY_VALUE);
-    owners.set(owner9.address, OWNER_KEY_VALUE);
-    owners.set(owner10.address, OWNER_KEY_VALUE);
-    owners.set(owner11.address, OWNER_KEY_VALUE);
+    owners.set(owner1.address, 0);
+    owners.set(owner2.address, 1);
+    owners.set(owner3.address, 2);
+    owners.set(owner4.address, 3);
+    owners.set(owner5.address, 4);
+    owners.set(owner6.address, 5);
+    owners.set(owner7.address, 6);
+    owners.set(owner8.address, 7);
+    owners.set(owner9.address, 8);
+    owners.set(owner10.address, 9);
+    owners.set(owner11.address, 10);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: MAX_OWNER_COUNT + 1,
@@ -158,6 +221,7 @@ get fun `test owner count above maximum is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
@@ -177,8 +241,8 @@ get fun `test zero threshold is rejected`() {
     val ownerB = testTreasury("zeroThresholdB");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -187,6 +251,7 @@ get fun `test zero threshold is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
@@ -206,8 +271,8 @@ get fun `test config threshold zero is rejected`() {
     val ownerB = testTreasury("zeroConfigThresholdB");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -216,6 +281,7 @@ get fun `test config threshold zero is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
@@ -235,8 +301,8 @@ get fun `test payout threshold above config threshold is rejected`() {
     val ownerB = testTreasury("payoutAboveConfigB");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -245,6 +311,7 @@ get fun `test payout threshold above config threshold is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
@@ -264,8 +331,8 @@ get fun `test config threshold above owner count is rejected`() {
     val ownerB = testTreasury("configAboveOwnerB");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -274,6 +341,7 @@ get fun `test config threshold above owner count is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
@@ -293,8 +361,8 @@ get fun `test fee reserve below minimum is rejected`() {
     val ownerB = testTreasury("feeReserveBelowB");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -303,6 +371,7 @@ get fun `test fee reserve below minimum is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: MIN_FEE_RESERVE - 1,
         owners,
         proposals: [],
@@ -967,8 +1036,8 @@ get fun `test config proposal validation rejects duplicate owners`() {
     val (contract, ownerA, ownerB, _) = setupTreasuryMutableConfig();
 
     var newOwners: map<address, uint8> = [];
-    newOwners.set(ownerA.address, OWNER_KEY_VALUE);
-    newOwners.set(ownerB.address, OWNER_KEY_VALUE);
+    newOwners.set(ownerA.address, OWNER_INDEX_0);
+    newOwners.set(ownerB.address, OWNER_INDEX_1);
 
     val res = contract.sendCreateConfigProposal(
         ownerA.address,
@@ -988,11 +1057,63 @@ get fun `test config proposal validation rejects duplicate owners`() {
     });
 }
 
+get fun `test config proposal validation rejects duplicate owner indexes`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasuryMutableConfig();
+
+    var newOwners: map<address, uint8> = [];
+    newOwners.set(ownerA.address, OWNER_INDEX_0);
+    newOwners.set(ownerB.address, OWNER_INDEX_1);
+    newOwners.set(ownerC.address, OWNER_INDEX_1);
+
+    val res = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveFailedTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.DuplicateOwner,
+    });
+}
+
+get fun `test config proposal validation rejects owner index outside owner count`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasuryMutableConfig();
+
+    var newOwners: map<address, uint8> = [];
+    newOwners.set(ownerA.address, OWNER_INDEX_0);
+    newOwners.set(ownerB.address, OWNER_INDEX_1);
+    newOwners.set(ownerC.address, 3);
+
+    val res = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveFailedTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidOwnerCount,
+    });
+}
+
 get fun `test config proposal validation rejects owner count below minimum`() {
     val (contract, ownerA, _, _) = setupTreasuryMutableConfig();
 
     var newOwners: map<address, uint8> = [];
-    newOwners.set(ownerA.address, OWNER_KEY_VALUE);
+    newOwners.set(ownerA.address, OWNER_INDEX_0);
 
     val res = contract.sendCreateConfigProposal(
         ownerA.address,
@@ -1885,8 +2006,8 @@ fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
     val outsider = testTreasury("outsider");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -1895,6 +2016,7 @@ fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
@@ -1913,8 +2035,8 @@ fun setupTreasuryMutableConfig(): (Treasury, TestTreasury, TestTreasury, TestTre
     val outsider = testTreasury("mutableOutsider");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -1923,6 +2045,7 @@ fun setupTreasuryMutableConfig(): (Treasury, TestTreasury, TestTreasury, TestTre
         configThresholdMutable: true,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
@@ -1954,6 +2077,7 @@ fun setupThreeOwnerTreasury(
         configThresholdMutable: mutable,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
@@ -1968,8 +2092,8 @@ fun setupThreeOwnerTreasury(
 
 fun twoOwners(ownerA: TestTreasury, ownerB: TestTreasury): map<address, uint8> {
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
     return owners;
 }
 
@@ -1979,9 +2103,9 @@ fun threeOwners(
     ownerC: TestTreasury,
 ): map<address, uint8> {
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
-    owners.set(ownerC.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
+    owners.set(ownerC.address, OWNER_INDEX_2);
     return owners;
 }
 
@@ -2003,8 +2127,8 @@ fun setupTreasuryWithSeededProposal(
     val recipient = testTreasury("seededRecipient");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val proposal = Proposal {
         id: 0,
@@ -2037,6 +2161,7 @@ fun setupTreasuryWithSeededProposal(
         configThresholdMutable: false,
         configVersion: 1,
         proposalSeqno: 1,
+        retainedProposalCount: 1,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals,
@@ -2055,8 +2180,8 @@ fun setupTreasuryWithWrongKindApproval(): (Treasury, TestTreasury, TestTreasury,
     val recipient = testTreasury("wrongKindApprovalRecipient");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val proposal = Proposal {
         id: 0,
@@ -2089,6 +2214,7 @@ fun setupTreasuryWithWrongKindApproval(): (Treasury, TestTreasury, TestTreasury,
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 1,
+        retainedProposalCount: 1,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals,
@@ -2107,8 +2233,8 @@ fun setupTreasuryWithLegacyIdOnlyApproval(): (Treasury, TestTreasury, TestTreasu
     val recipient = testTreasury("legacyApprovalRecipient");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val proposal = Proposal {
         id: 0,
@@ -2138,6 +2264,7 @@ fun setupTreasuryWithLegacyIdOnlyApproval(): (Treasury, TestTreasury, TestTreasu
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 1,
+        retainedProposalCount: 1,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals,
