@@ -38,6 +38,8 @@ enum Errors {
     InvalidFeeReserve = 148
     ProposalStale = 149
     InvalidProposalKind = 150
+    ProposalPruned = 151
+    ProposalNotPrunable = 152
     ProposalLimitReached = 153
 }
 
@@ -352,9 +354,14 @@ struct (0x54524605) CreateConfigProposal {
     expiresAt: uint32
 }
 
+struct (0x54524606) PruneProposal {
+    proposalId: uint64
+}
+
 type TreasuryMessage =
     | CreatePayoutProposal
     | ApproveProposal
     | ExecuteProposal
     | CancelProposal
     | CreateConfigProposal
+    | PruneProposal

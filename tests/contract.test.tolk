@@ -2266,6 +2266,261 @@ get fun `test cancelled proposal remains cancelled even if stale`() {
     expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Cancelled);
 }
 
+get fun `test owner can prune executed proposal`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    createProposal(contract, ownerA, recipient.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+    executeProposal(contract, ownerA, 0);
+
+    val proposalSeqno = contract.proposalSeqno();
+    val configVersion = contract.configVersion();
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveSuccessfulTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    expectNoActionMessages(res);
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Pruned);
+    expect(contract.retainedProposalCount()).toEqual(0);
+    expect(contract.proposalSeqno()).toEqual(proposalSeqno);
+    expect(contract.configVersion()).toEqual(configVersion);
+}
+
+get fun `test owner can prune cancelled proposal`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+    val cancel = contract.sendCancelProposal(ownerA.address, 0, { value: MIN_CANCEL_VALUE });
+    expect(cancel).toHaveSuccessfulTx<CancelProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveSuccessfulTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Pruned);
+    expect(contract.retainedProposalCount()).toEqual(0);
+}
+
+get fun `test owner can prune expired proposal`() {
+    val (contract, ownerA, _, recipient) = setupTreasury();
+    val create = contract.sendCreatePayoutProposal(
+        ownerA.address,
+        recipient.address,
+        ton("0.20"),
+        blockchain.now() + 1,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(create).toHaveSuccessfulTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    testSetNow((blockchain.now() + 2) as uint32);
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Expired);
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveSuccessfulTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Pruned);
+    expect(contract.retainedProposalCount()).toEqual(0);
+}
+
+get fun `test owner can prune stale proposal`() {
+    val (contract, ownerA, _, _) = setupTreasuryWithSeededProposal(
+        ProposalStatus.Pending,
+        1,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+    );
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Stale);
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveSuccessfulTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Pruned);
+    expect(contract.retainedProposalCount()).toEqual(0);
+}
+
+get fun `test non owner cannot prune`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    val res = contract.sendPruneProposal(outsider.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveFailedTx<PruneProposal>({
+        from: outsider.address,
+        to: contract.address,
+        exitCode: Errors.NotOwner,
+    });
+}
+
+get fun `test prune proposal rejects insufficient inbound value`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    createProposal(contract, ownerA, recipient.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+    executeProposal(contract, ownerA, 0);
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE - 1 });
+    expect(res).toHaveFailedTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InsufficientMessageValue,
+    });
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Executed);
+    expect(contract.retainedProposalCount()).toEqual(1);
+}
+
+get fun `test pending proposal cannot be pruned`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveFailedTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalNotPrunable,
+    });
+}
+
+get fun `test executable current version proposal cannot be pruned`() {
+    val (contract, ownerA, ownerB, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveFailedTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalNotPrunable,
+    });
+}
+
+get fun `test pruned proposal cannot be pruned twice`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    createProposal(contract, ownerA, recipient.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+    executeProposal(contract, ownerA, 0);
+    val prune = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(prune).toHaveSuccessfulTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveFailedTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalPruned,
+    });
+    expect(contract.retainedProposalCount()).toEqual(0);
+}
+
+get fun `test never created proposal cannot be pruned`() {
+    val (contract, ownerA, _, _) = setupTreasury();
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveFailedTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalNotFound,
+    });
+}
+
+get fun `test prune does not change treasury configuration`() {
+    val (contract, ownerA, ownerB, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+    executeProposal(contract, ownerA, 0);
+
+    val ownerCount = contract.ownerCount();
+    val payoutThreshold = contract.payoutThreshold();
+    val configThreshold = contract.configThreshold();
+    val configThresholdMutable = contract.configThresholdMutable();
+    val configVersion = contract.configVersion();
+    val feeReserve = contract.feeReserve();
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveSuccessfulTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    expect(contract.ownerCount()).toEqual(ownerCount);
+    expect(contract.payoutThreshold()).toEqual(payoutThreshold);
+    expect(contract.configThreshold()).toEqual(configThreshold);
+    expect(contract.configThresholdMutable()).toEqual(configThresholdMutable);
+    expect(contract.configVersion()).toEqual(configVersion);
+    expect(contract.feeReserve()).toEqual(feeReserve);
+    expect(contract.isOwner(ownerA.address)).toBeTrue();
+    expect(contract.isOwner(ownerB.address)).toBeTrue();
+    expect(contract.isOwner(outsider.address)).toBeFalse();
+}
+
+get fun `test can prune blocks active and missing proposals`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    expect(contract.canPrune(0)).toBeFalse();
+
+    createProposal(contract, ownerA, recipient.address, ton("0.20"));
+    expect(contract.canPrune(0)).toBeFalse();
+
+    approveProposal(contract, ownerB, 0);
+    expect(contract.canPrune(0)).toBeFalse();
+
+    executeProposal(contract, ownerA, 0);
+    expect(contract.canPrune(0)).toBeTrue();
+
+    val prune = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(prune).toHaveSuccessfulTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    expect(contract.canPrune(0)).toBeFalse();
+}
+
+get fun `test can prune allows cancelled expired and stale proposals`() {
+    val (cancelledContract, ownerA, _, outsider) = setupTreasury();
+    createProposal(cancelledContract, ownerA, outsider.address, ton("0.20"));
+    val cancel = cancelledContract.sendCancelProposal(
+        ownerA.address,
+        0,
+        { value: MIN_CANCEL_VALUE },
+    );
+    expect(cancel).toHaveSuccessfulTx<CancelProposal>({
+        from: ownerA.address,
+        to: cancelledContract.address,
+    });
+    expect(cancelledContract.canPrune(0)).toBeTrue();
+
+    val createExpired = cancelledContract.sendCreatePayoutProposal(
+        ownerA.address,
+        outsider.address,
+        ton("0.20"),
+        blockchain.now() + 1,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(createExpired).toHaveSuccessfulTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: cancelledContract.address,
+    });
+    testSetNow((blockchain.now() + 2) as uint32);
+    expect(cancelledContract.canPrune(1)).toBeTrue();
+
+    val (staleContract, _, _, _) = setupTreasuryWithSeededProposal(
+        ProposalStatus.Pending,
+        1,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+    );
+    expect(staleContract.canPrune(0)).toBeTrue();
+}
+
 fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
     val ownerA = testTreasury("ownerA");
     val ownerB = testTreasury("ownerB");
@@ -2533,6 +2788,20 @@ fun executeProposal(contract: Treasury, owner: TestTreasury, proposalId: uint64)
         from: owner.address,
         to: contract.address,
     });
+}
+
+fun expectNoActionMessages(res: SendResultList) {
+    val rootTx = res.at(0).tx.load();
+    val descr = rootTx.description.load();
+    if (descr is TlbTransOrd) {
+        val actionCell = descr.action.unwrapOr(null);
+        if (actionCell != null) {
+            val action = actionCell!.load();
+            expect(action.msgsCreated).toEqual(0);
+        }
+    } else {
+        throw 999;
+    }
 }
 
 fun expectSuccessfulPayoutActionPhase(res: SendResultList) {

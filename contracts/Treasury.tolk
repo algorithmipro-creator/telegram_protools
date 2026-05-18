@@ -190,6 +190,31 @@ fun onInternalMessage(in: InMessage) {
             storage.proposals.set(msg.proposalId, proposal.toCell());
             storage.save();
         }
+        PruneProposal => {
+            var storage = lazy Storage.load();
+            storage.assertValidConfig();
+            requireMinValue(in.valueCoins, MIN_PRUNE_VALUE);
+            storage.assertOwner(in.senderAddress);
+            assert (msg.proposalId < storage.proposalSeqno) throw Errors.ProposalNotFound;
+
+            val proposalCell = storage.proposals.get(msg.proposalId);
+            assert (proposalCell.isFound) throw Errors.ProposalPruned;
+
+            val proposal = proposalCell.loadValue().load();
+            val status = proposal.viewStatus(
+                storage.configVersion,
+                storage.requiredThreshold(proposal.kind),
+            );
+            val prunable = status == ProposalViewStatus.Executed ||
+            status == ProposalViewStatus.Cancelled ||
+            status == ProposalViewStatus.Expired ||
+            status == ProposalViewStatus.Stale;
+            assert (prunable) throw Errors.ProposalNotPrunable;
+
+            assert (storage.proposals.delete(msg.proposalId)) throw Errors.ProposalPruned;
+            storage.retainedProposalCount = storage.retainedProposalCount - 1;
+            storage.save();
+        }
         else => {
             assert (in.body.isEmpty()) throw Errors.InvalidMessage;
             val storage = lazy Storage.load();
@@ -269,6 +294,14 @@ get fun proposal(proposalId: uint64): ProposalView {
 
 get fun proposal_status(proposalId: uint64): ProposalViewStatus {
     return proposal(proposalId).status;
+}
+
+get fun can_prune(proposalId: uint64): bool {
+    val view = proposal(proposalId);
+    return view.status == ProposalViewStatus.Executed ||
+    view.status == ProposalViewStatus.Cancelled ||
+    view.status == ProposalViewStatus.Expired ||
+    view.status == ProposalViewStatus.Stale;
 }
 
 get fun proposal_kind(proposalId: uint64): ProposalKind {
