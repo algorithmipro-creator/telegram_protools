@@ -54,8 +54,8 @@ get fun `test invalid treasury config is rejected`() {
     val ownerB = testTreasury("invalidOwnerB");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val badThreshold = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -64,10 +64,10 @@ get fun `test invalid treasury config is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
-        approvals: [],
     });
     val thresholdDeploy = badThreshold.deploy(ownerA.address, { value: ton("1.00") });
     expect(thresholdDeploy).toHaveFailedTx({
@@ -77,7 +77,7 @@ get fun `test invalid treasury config is rejected`() {
     });
 
     var duplicateCollapsedOwners: map<address, uint8> = [];
-    duplicateCollapsedOwners.set(ownerA.address, OWNER_KEY_VALUE);
+    duplicateCollapsedOwners.set(ownerA.address, OWNER_INDEX_0);
     val duplicateCollapsed = Treasury.fromStorage(Storage {
         ownerCount: 2,
         payoutThreshold: 1,
@@ -85,10 +85,10 @@ get fun `test invalid treasury config is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners: duplicateCollapsedOwners,
         proposals: [],
-        approvals: [],
     });
     val duplicateDeploy = duplicateCollapsed.deploy(ownerA.address, { value: ton("1.00") });
     expect(duplicateDeploy).toHaveFailedTx({
@@ -98,11 +98,69 @@ get fun `test invalid treasury config is rejected`() {
     });
 }
 
+get fun `test duplicate owner indexes are rejected`() {
+    val ownerA = testTreasury("duplicateIndexOwnerA");
+    val ownerB = testTreasury("duplicateIndexOwnerB");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, 0);
+    owners.set(ownerB.address, 0);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 2,
+        configThreshold: 2,
+        configThresholdMutable: false,
+        configVersion: 0,
+        proposalSeqno: 0,
+        retainedProposalCount: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveFailedTx({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.DuplicateOwner,
+    });
+}
+
+get fun `test owner index outside owner count is rejected`() {
+    val ownerA = testTreasury("badIndexOwnerA");
+    val ownerB = testTreasury("badIndexOwnerB");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, 0);
+    owners.set(ownerB.address, 2);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 2,
+        configThreshold: 2,
+        configThresholdMutable: false,
+        configVersion: 0,
+        proposalSeqno: 0,
+        retainedProposalCount: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveFailedTx({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidOwnerCount,
+    });
+}
+
 get fun `test owner count below minimum is rejected`() {
     val ownerA = testTreasury("singleOwnerA");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: MIN_OWNER_COUNT - 1,
@@ -111,10 +169,10 @@ get fun `test owner count below minimum is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
-        approvals: [],
     });
 
     val res = contract.deploy(ownerA.address, { value: ton("1.00") });
@@ -139,17 +197,17 @@ get fun `test owner count above maximum is rejected`() {
     val owner11 = testTreasury("maxOwner11");
 
     var owners: map<address, uint8> = [];
-    owners.set(owner1.address, OWNER_KEY_VALUE);
-    owners.set(owner2.address, OWNER_KEY_VALUE);
-    owners.set(owner3.address, OWNER_KEY_VALUE);
-    owners.set(owner4.address, OWNER_KEY_VALUE);
-    owners.set(owner5.address, OWNER_KEY_VALUE);
-    owners.set(owner6.address, OWNER_KEY_VALUE);
-    owners.set(owner7.address, OWNER_KEY_VALUE);
-    owners.set(owner8.address, OWNER_KEY_VALUE);
-    owners.set(owner9.address, OWNER_KEY_VALUE);
-    owners.set(owner10.address, OWNER_KEY_VALUE);
-    owners.set(owner11.address, OWNER_KEY_VALUE);
+    owners.set(owner1.address, 0);
+    owners.set(owner2.address, 1);
+    owners.set(owner3.address, 2);
+    owners.set(owner4.address, 3);
+    owners.set(owner5.address, 4);
+    owners.set(owner6.address, 5);
+    owners.set(owner7.address, 6);
+    owners.set(owner8.address, 7);
+    owners.set(owner9.address, 8);
+    owners.set(owner10.address, 9);
+    owners.set(owner11.address, 10);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: MAX_OWNER_COUNT + 1,
@@ -158,10 +216,10 @@ get fun `test owner count above maximum is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
-        approvals: [],
     });
 
     val res = contract.deploy(owner1.address, { value: ton("1.00") });
@@ -177,8 +235,8 @@ get fun `test zero threshold is rejected`() {
     val ownerB = testTreasury("zeroThresholdB");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -187,10 +245,10 @@ get fun `test zero threshold is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
-        approvals: [],
     });
 
     val res = contract.deploy(ownerA.address, { value: ton("1.00") });
@@ -206,8 +264,8 @@ get fun `test config threshold zero is rejected`() {
     val ownerB = testTreasury("zeroConfigThresholdB");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -216,10 +274,10 @@ get fun `test config threshold zero is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
-        approvals: [],
     });
 
     val res = contract.deploy(ownerA.address, { value: ton("1.00") });
@@ -235,8 +293,8 @@ get fun `test payout threshold above config threshold is rejected`() {
     val ownerB = testTreasury("payoutAboveConfigB");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -245,10 +303,10 @@ get fun `test payout threshold above config threshold is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
-        approvals: [],
     });
 
     val res = contract.deploy(ownerA.address, { value: ton("1.00") });
@@ -264,8 +322,8 @@ get fun `test config threshold above owner count is rejected`() {
     val ownerB = testTreasury("configAboveOwnerB");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -274,10 +332,10 @@ get fun `test config threshold above owner count is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
-        approvals: [],
     });
 
     val res = contract.deploy(ownerA.address, { value: ton("1.00") });
@@ -293,8 +351,8 @@ get fun `test fee reserve below minimum is rejected`() {
     val ownerB = testTreasury("feeReserveBelowB");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -303,10 +361,10 @@ get fun `test fee reserve below minimum is rejected`() {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: MIN_FEE_RESERVE - 1,
         owners,
         proposals: [],
-        approvals: [],
     });
 
     val res = contract.deploy(ownerA.address, { value: ton("1.00") });
@@ -408,6 +466,170 @@ get fun `test owner creates config proposal with creator auto approval`() {
     expect(contract.payoutThreshold()).toEqual(2);
     expect(contract.configThreshold()).toEqual(2);
     expect(contract.configVersion()).toEqual(0);
+}
+
+get fun `test creator approval is stored in proposal approval mask`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    val res = contract.sendCreatePayoutProposal(
+        ownerA.address,
+        outsider.address,
+        ton("0.05"),
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveSuccessfulTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    val proposal = contract.proposal(0);
+    expect(proposal.approvalCount).toEqual(1);
+    expect(proposal.approvalMask).toEqual(1);
+    expect(contract.hasApproval(0, ownerA.address)).toEqual(true);
+}
+
+get fun `test config proposal creator approval is stored in proposal approval mask`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasuryMutableConfig();
+    val newOwners = twoOwnersPlus(ownerA, ownerB, ownerC);
+
+    val res = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    val proposal = contract.proposal(0);
+    expect(proposal.approvalCount).toEqual(1);
+    expect(proposal.approvalMask).toEqual(1);
+    expect(contract.hasApproval(0, ownerA.address)).toEqual(true);
+}
+
+get fun `test retained proposal count increments on payout create`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    expect(contract.retainedProposalCount()).toEqual(0);
+
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    expect(contract.retainedProposalCount()).toEqual(1);
+}
+
+get fun `test retained proposal count increments on config create`() {
+    val (contract, ownerA, ownerB, _) = setupTreasuryMutableConfig();
+    val newOwners = twoOwners(ownerA, ownerB);
+    expect(contract.retainedProposalCount()).toEqual(0);
+
+    val res = contract.sendCreateConfigProposal(
+        ownerA.address,
+        2,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    expect(contract.retainedProposalCount()).toEqual(1);
+}
+
+get fun `test proposal cap blocks payout proposal create`() {
+    val (contract, ownerA, _, outsider) = setupTreasuryAtProposalCap(false);
+
+    val res = contract.sendCreatePayoutProposal(
+        ownerA.address,
+        outsider.address,
+        ton("0.20"),
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveFailedTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalLimitReached,
+    });
+    expect(contract.retainedProposalCount()).toEqual(MAX_RETAINED_PROPOSALS);
+    expect(contract.proposalSeqno()).toEqual(0);
+}
+
+get fun `test proposal cap blocks config proposal create`() {
+    val (contract, ownerA, ownerB, _) = setupTreasuryAtProposalCap(true);
+    val newOwners = twoOwners(ownerA, ownerB);
+
+    val res = contract.sendCreateConfigProposal(
+        ownerA.address,
+        2,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveFailedTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalLimitReached,
+    });
+    expect(contract.retainedProposalCount()).toEqual(MAX_RETAINED_PROPOSALS);
+    expect(contract.proposalSeqno()).toEqual(0);
+}
+
+get fun `test proposal id beyond seqno returns not found status`() {
+    val (contract, _, _, _) = setupTreasury();
+
+    val proposal = contract.proposal(0);
+
+    expect(proposal.id).toEqual(0);
+    expect(proposal.status).toEqual(ProposalViewStatus.NotFound);
+    expect(proposal.approvalCount).toEqual(0);
+    expect(proposal.approvalMask).toEqual(0);
+    expect(proposal.requiredApprovalCount).toEqual(0);
+    expect(proposal.creator).toEqual(zeroAddress());
+    expect(proposal.payoutRecipient).toEqual(zeroAddress());
+    expect(proposal.payoutAmount).toEqual(0);
+}
+
+get fun `test missing proposal below seqno returns pruned status`() {
+    val (contract, _, _, _) = setupTreasuryWithMissingProposalBelowSeqno();
+
+    val proposal = contract.proposal(0);
+
+    expect(proposal.id).toEqual(0);
+    expect(proposal.status).toEqual(ProposalViewStatus.Pruned);
+    expect(proposal.approvalCount).toEqual(0);
+    expect(proposal.approvalMask).toEqual(0);
+    expect(proposal.requiredApprovalCount).toEqual(0);
+    expect(proposal.creator).toEqual(zeroAddress());
+    expect(proposal.payoutRecipient).toEqual(zeroAddress());
+    expect(proposal.payoutAmount).toEqual(0);
+}
+
+get fun `test proposal status getter returns matching not found and pruned status`() {
+    val (emptyContract, _, _, _) = setupTreasury();
+    val (prunedContract, _, _, _) = setupTreasuryWithMissingProposalBelowSeqno();
+
+    val notFoundStatus = emptyContract.proposalStatus(0);
+    val prunedStatus = prunedContract.proposalStatus(0);
+
+    expect(notFoundStatus).toEqual(emptyContract.proposal(0).status);
+    expect(prunedStatus).toEqual(prunedContract.proposal(0).status);
 }
 
 get fun `test proposal kind getter returns payout kind for payout proposal`() {
@@ -736,6 +958,7 @@ get fun `test executable cancel config proposal is rejected`() {
 get fun `test expired cancel config proposal is rejected`() {
     val (contract, ownerA, ownerB, ownerC, _) = setupThreeOwnerTreasury(2, 3, true);
     val newOwners = threeOwners(ownerA, ownerB, ownerC);
+    val expiresAt = blockchain.now() + DEFAULT_EXPIRY_SECONDS;
 
     val create = contract.sendCreateConfigProposal(
         ownerA.address,
@@ -744,7 +967,7 @@ get fun `test expired cancel config proposal is rejected`() {
         3,
         DEFAULT_FEE_RESERVE,
         newOwners,
-        blockchain.now() + 1,
+        expiresAt,
         { value: MIN_CREATE_VALUE },
     );
     expect(create).toHaveSuccessfulTx<CreateConfigProposal>({
@@ -752,7 +975,7 @@ get fun `test expired cancel config proposal is rejected`() {
         to: contract.address,
     });
 
-    testSetNow((blockchain.now() + 2) as uint32);
+    testSetNow((expiresAt + 1) as uint32);
 
     val res = contract.sendCancelProposal(ownerA.address, 0, { value: MIN_CANCEL_VALUE });
     expect(res).toHaveFailedTx<CancelProposal>({
@@ -967,8 +1190,8 @@ get fun `test config proposal validation rejects duplicate owners`() {
     val (contract, ownerA, ownerB, _) = setupTreasuryMutableConfig();
 
     var newOwners: map<address, uint8> = [];
-    newOwners.set(ownerA.address, OWNER_KEY_VALUE);
-    newOwners.set(ownerB.address, OWNER_KEY_VALUE);
+    newOwners.set(ownerA.address, OWNER_INDEX_0);
+    newOwners.set(ownerB.address, OWNER_INDEX_1);
 
     val res = contract.sendCreateConfigProposal(
         ownerA.address,
@@ -988,11 +1211,63 @@ get fun `test config proposal validation rejects duplicate owners`() {
     });
 }
 
+get fun `test config proposal validation rejects duplicate owner indexes`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasuryMutableConfig();
+
+    var newOwners: map<address, uint8> = [];
+    newOwners.set(ownerA.address, OWNER_INDEX_0);
+    newOwners.set(ownerB.address, OWNER_INDEX_1);
+    newOwners.set(ownerC.address, OWNER_INDEX_1);
+
+    val res = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveFailedTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.DuplicateOwner,
+    });
+}
+
+get fun `test config proposal validation rejects owner index outside owner count`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasuryMutableConfig();
+
+    var newOwners: map<address, uint8> = [];
+    newOwners.set(ownerA.address, OWNER_INDEX_0);
+    newOwners.set(ownerB.address, OWNER_INDEX_1);
+    newOwners.set(ownerC.address, 3);
+
+    val res = contract.sendCreateConfigProposal(
+        ownerA.address,
+        3,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        newOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+
+    expect(res).toHaveFailedTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InvalidOwnerCount,
+    });
+}
+
 get fun `test config proposal validation rejects owner count below minimum`() {
     val (contract, ownerA, _, _) = setupTreasuryMutableConfig();
 
     var newOwners: map<address, uint8> = [];
-    newOwners.set(ownerA.address, OWNER_KEY_VALUE);
+    newOwners.set(ownerA.address, OWNER_INDEX_0);
 
     val res = contract.sendCreateConfigProposal(
         ownerA.address,
@@ -1278,7 +1553,7 @@ get fun `test config proposal validation rejects invalid expiry and minimum valu
         2,
         DEFAULT_FEE_RESERVE,
         newOwners,
-        blockchain.now() + MAX_EXPIRY_SECONDS + 1,
+        blockchain.now() + MAX_EXPIRY_SECONDS + 100,
         { value: MIN_CREATE_VALUE },
     );
     expect(tooFar).toHaveFailedTx<CreateConfigProposal>({
@@ -1340,6 +1615,22 @@ get fun `test second owner approves proposal`() {
     expect(contract.hasApproval(0, ownerB.address)).toBeTrue();
 }
 
+get fun `test second owner approval sets second approval bit`() {
+    val (contract, ownerA, ownerB, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    val res = contract.sendApproveProposal(ownerB.address, 0, { value: MIN_APPROVE_VALUE });
+    expect(res).toHaveSuccessfulTx<ApproveProposal>({
+        from: ownerB.address,
+        to: contract.address,
+    });
+
+    val proposal = contract.proposal(0);
+    expect(proposal.approvalCount).toEqual(2);
+    expect(proposal.approvalMask).toEqual(3);
+    expect(contract.hasApproval(0, ownerB.address)).toEqual(true);
+}
+
 get fun `test duplicate approval is rejected`() {
     val (contract, ownerA, _, outsider) = setupTreasury();
     createProposal(contract, ownerA, outsider.address, ton("0.20"));
@@ -1351,7 +1642,9 @@ get fun `test duplicate approval is rejected`() {
         exitCode: Errors.AlreadyApproved,
     });
 
-    expect(contract.proposal(0).approvalCount).toEqual(1);
+    val proposal = contract.proposal(0);
+    expect(proposal.approvalCount).toEqual(1);
+    expect(proposal.approvalMask).toEqual(1);
 }
 
 get fun `test non owner cannot approve proposal`() {
@@ -1406,11 +1699,12 @@ get fun `test executable proposal cannot be cancelled`() {
 
 get fun `test expired proposal cannot be approved`() {
     val (contract, ownerA, ownerB, outsider) = setupTreasury();
+    val expiresAt = blockchain.now() + DEFAULT_EXPIRY_SECONDS;
     val res = contract.sendCreatePayoutProposal(
         ownerA.address,
         outsider.address,
         ton("0.20"),
-        blockchain.now() + 1,
+        expiresAt,
         { value: ton("0.05") },
     );
     expect(res).toHaveSuccessfulTx<CreatePayoutProposal>({
@@ -1418,7 +1712,7 @@ get fun `test expired proposal cannot be approved`() {
         to: contract.address,
     });
 
-    testSetNow((blockchain.now() + 2) as uint32);
+    testSetNow((expiresAt + 1) as uint32);
 
     val approval = contract.sendApproveProposal(ownerB.address, 0, { value: ton("0.05") });
     expect(approval).toHaveFailedTx<ApproveProposal>({
@@ -1507,11 +1801,12 @@ get fun `test fee reserve prevents draining treasury`() {
 
 get fun `test expired proposal cannot be executed`() {
     val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    val expiresAt = blockchain.now() + DEFAULT_EXPIRY_SECONDS;
     val create = contract.sendCreatePayoutProposal(
         ownerA.address,
         recipient.address,
         ton("0.20"),
-        blockchain.now() + 1,
+        expiresAt,
         { value: ton("0.05") },
     );
     expect(create).toHaveSuccessfulTx<CreatePayoutProposal>({
@@ -1520,7 +1815,7 @@ get fun `test expired proposal cannot be executed`() {
     });
     approveProposal(contract, ownerB, 0);
 
-    testSetNow((blockchain.now() + 2) as uint32);
+    testSetNow((expiresAt + 1) as uint32);
 
     val res = contract.sendExecuteProposal(ownerA.address, 0, { value: ton("0.05") });
     expect(res).toHaveFailedTx<ExecuteProposal>({
@@ -1741,7 +2036,7 @@ get fun `test execute payout action phase succeeds`() {
 }
 
 get fun `test stale proposal cannot be approved`() {
-    val (contract, ownerA, ownerB, _) = setupTreasuryWithSeededProposal(
+    val (contract, _, ownerB, _) = setupTreasuryWithSeededProposal(
         ProposalStatus.Pending,
         1,
         blockchain.now() + DEFAULT_EXPIRY_SECONDS,
@@ -1754,21 +2049,116 @@ get fun `test stale proposal cannot be approved`() {
         exitCode: Errors.ProposalStale,
     });
     expect(contract.proposal(0).approvalCount).toEqual(1);
-    expect(contract.hasApproval(0, ownerA.address)).toBeTrue();
+    expect(contract.proposal(0).approvalMask).toEqual(1);
 }
 
-get fun `test approval key includes proposal kind`() {
-    val (contract, ownerA, _, _) = setupTreasuryWithLegacyIdOnlyApproval();
+get fun `test stale proposal keeps approval mask after owner set changes`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasury();
+    val replacementOwners = twoOwners(ownerA, ownerC);
 
-    expect(contract.proposal(0).kind).toEqual(ProposalKind.PayoutTon);
-    expect(contract.hasApproval(0, ownerA.address)).toBeFalse();
+    createProposal(contract, ownerA, ownerB.address, ton("0.20"));
+    expect(contract.proposal(0).approvalMask).toEqual(1);
+
+    val createConfig = contract.sendCreateConfigProposal(
+        ownerA.address,
+        2,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        replacementOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(createConfig).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    approveProposal(contract, ownerB, 1);
+    executeProposal(contract, ownerA, 1);
+
+    val oldProposal = contract.proposal(0);
+    expect(oldProposal.status).toEqual(ProposalViewStatus.Stale);
+    expect(oldProposal.approvalCount).toEqual(1);
+    expect(oldProposal.approvalMask).toEqual(1);
+
+    val approval = contract.sendApproveProposal(ownerC.address, 0, { value: MIN_APPROVE_VALUE });
+    expect(approval).toHaveFailedTx<ApproveProposal>({
+        from: ownerC.address,
+        to: contract.address,
+        exitCode: Errors.ProposalStale,
+    });
+
+    val execute = contract.sendExecuteProposal(ownerA.address, 0, { value: MIN_EXECUTE_VALUE });
+    expect(execute).toHaveFailedTx<ExecuteProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalStale,
+    });
 }
 
-get fun `test wrong kind approval key does not count`() {
-    val (contract, ownerA, _, _) = setupTreasuryWithWrongKindApproval();
+get fun `test has approval is false for stale proposal after owner index reuse`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasury();
+    val replacementOwners = twoOwners(ownerA, ownerC);
 
-    expect(contract.proposal(0).kind).toEqual(ProposalKind.PayoutTon);
-    expect(contract.hasApproval(0, ownerA.address)).toBeFalse();
+    createProposal(contract, ownerA, ownerB.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+    expect(contract.proposal(0).approvalMask).toEqual(3);
+
+    val createConfig = contract.sendCreateConfigProposal(
+        ownerA.address,
+        2,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        replacementOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(createConfig).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    approveProposal(contract, ownerB, 1);
+    executeProposal(contract, ownerA, 1);
+
+    val oldProposal = contract.proposal(0);
+    expect(oldProposal.status).toEqual(ProposalViewStatus.Stale);
+    expect(oldProposal.approvalMask).toEqual(3);
+    expect(contract.hasApproval(0, ownerB.address)).toBeFalse();
+    expect(contract.hasApproval(0, ownerC.address)).toBeFalse();
+}
+
+get fun `test new proposal after config change uses new owner approval bits`() {
+    val (contract, ownerA, ownerB, ownerC) = setupTreasury();
+    val replacementOwners = twoOwners(ownerA, ownerC);
+
+    createProposal(contract, ownerA, ownerB.address, ton("0.20"));
+
+    val createConfig = contract.sendCreateConfigProposal(
+        ownerA.address,
+        2,
+        2,
+        2,
+        DEFAULT_FEE_RESERVE,
+        replacementOwners,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(createConfig).toHaveSuccessfulTx<CreateConfigProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    approveProposal(contract, ownerB, 1);
+    executeProposal(contract, ownerA, 1);
+
+    createProposal(contract, ownerA, ownerB.address, ton("0.20"));
+    approveProposal(contract, ownerC, 2);
+
+    val newProposal = contract.proposal(2);
+    expect(newProposal.configVersionAtCreation).toEqual(1);
+    expect(newProposal.approvalCount).toEqual(2);
+    expect(newProposal.approvalMask).toEqual(3);
+    expect(contract.hasApproval(2, ownerC.address)).toBeTrue();
 }
 
 get fun `test stale proposal cannot be executed`() {
@@ -1879,14 +2269,271 @@ get fun `test cancelled proposal remains cancelled even if stale`() {
     expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Cancelled);
 }
 
+get fun `test owner can prune executed proposal`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    createProposal(contract, ownerA, recipient.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+    executeProposal(contract, ownerA, 0);
+
+    val proposalSeqno = contract.proposalSeqno();
+    val configVersion = contract.configVersion();
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveSuccessfulTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    expectNoActionMessages(res);
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Pruned);
+    expect(contract.retainedProposalCount()).toEqual(0);
+    expect(contract.proposalSeqno()).toEqual(proposalSeqno);
+    expect(contract.configVersion()).toEqual(configVersion);
+}
+
+get fun `test owner can prune cancelled proposal`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+    val cancel = contract.sendCancelProposal(ownerA.address, 0, { value: MIN_CANCEL_VALUE });
+    expect(cancel).toHaveSuccessfulTx<CancelProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveSuccessfulTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Pruned);
+    expect(contract.retainedProposalCount()).toEqual(0);
+}
+
+get fun `test owner can prune expired proposal`() {
+    val (contract, ownerA, _, recipient) = setupTreasury();
+    val expiresAt = blockchain.now() + DEFAULT_EXPIRY_SECONDS;
+    val create = contract.sendCreatePayoutProposal(
+        ownerA.address,
+        recipient.address,
+        ton("0.20"),
+        expiresAt,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(create).toHaveSuccessfulTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    testSetNow((expiresAt + 1) as uint32);
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Expired);
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveSuccessfulTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Pruned);
+    expect(contract.retainedProposalCount()).toEqual(0);
+}
+
+get fun `test owner can prune stale proposal`() {
+    val (contract, ownerA, _, _) = setupTreasuryWithSeededProposal(
+        ProposalStatus.Pending,
+        1,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+    );
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Stale);
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveSuccessfulTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Pruned);
+    expect(contract.retainedProposalCount()).toEqual(0);
+}
+
+get fun `test non owner cannot prune`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    val res = contract.sendPruneProposal(outsider.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveFailedTx<PruneProposal>({
+        from: outsider.address,
+        to: contract.address,
+        exitCode: Errors.NotOwner,
+    });
+}
+
+get fun `test prune proposal rejects insufficient inbound value`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    createProposal(contract, ownerA, recipient.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+    executeProposal(contract, ownerA, 0);
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE - 1 });
+    expect(res).toHaveFailedTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.InsufficientMessageValue,
+    });
+    expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Executed);
+    expect(contract.retainedProposalCount()).toEqual(1);
+}
+
+get fun `test pending proposal cannot be pruned`() {
+    val (contract, ownerA, _, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveFailedTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalNotPrunable,
+    });
+}
+
+get fun `test executable current version proposal cannot be pruned`() {
+    val (contract, ownerA, ownerB, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveFailedTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalNotPrunable,
+    });
+}
+
+get fun `test pruned proposal cannot be pruned twice`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    createProposal(contract, ownerA, recipient.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+    executeProposal(contract, ownerA, 0);
+    val prune = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(prune).toHaveSuccessfulTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveFailedTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalPruned,
+    });
+    expect(contract.retainedProposalCount()).toEqual(0);
+}
+
+get fun `test never created proposal cannot be pruned`() {
+    val (contract, ownerA, _, _) = setupTreasury();
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveFailedTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+        exitCode: Errors.ProposalNotFound,
+    });
+}
+
+get fun `test prune does not change treasury configuration`() {
+    val (contract, ownerA, ownerB, outsider) = setupTreasury();
+    createProposal(contract, ownerA, outsider.address, ton("0.20"));
+    approveProposal(contract, ownerB, 0);
+    executeProposal(contract, ownerA, 0);
+
+    val ownerCount = contract.ownerCount();
+    val payoutThreshold = contract.payoutThreshold();
+    val configThreshold = contract.configThreshold();
+    val configThresholdMutable = contract.configThresholdMutable();
+    val configVersion = contract.configVersion();
+    val feeReserve = contract.feeReserve();
+
+    val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(res).toHaveSuccessfulTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+
+    expect(contract.ownerCount()).toEqual(ownerCount);
+    expect(contract.payoutThreshold()).toEqual(payoutThreshold);
+    expect(contract.configThreshold()).toEqual(configThreshold);
+    expect(contract.configThresholdMutable()).toEqual(configThresholdMutable);
+    expect(contract.configVersion()).toEqual(configVersion);
+    expect(contract.feeReserve()).toEqual(feeReserve);
+    expect(contract.isOwner(ownerA.address)).toBeTrue();
+    expect(contract.isOwner(ownerB.address)).toBeTrue();
+    expect(contract.isOwner(outsider.address)).toBeFalse();
+}
+
+get fun `test can prune blocks active and missing proposals`() {
+    val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    expect(contract.canPrune(0)).toBeFalse();
+
+    createProposal(contract, ownerA, recipient.address, ton("0.20"));
+    expect(contract.canPrune(0)).toBeFalse();
+
+    approveProposal(contract, ownerB, 0);
+    expect(contract.canPrune(0)).toBeFalse();
+
+    executeProposal(contract, ownerA, 0);
+    expect(contract.canPrune(0)).toBeTrue();
+
+    val prune = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
+    expect(prune).toHaveSuccessfulTx<PruneProposal>({
+        from: ownerA.address,
+        to: contract.address,
+    });
+    expect(contract.canPrune(0)).toBeFalse();
+}
+
+get fun `test can prune allows cancelled expired and stale proposals`() {
+    val (cancelledContract, ownerA, _, outsider) = setupTreasury();
+    createProposal(cancelledContract, ownerA, outsider.address, ton("0.20"));
+    val cancel = cancelledContract.sendCancelProposal(
+        ownerA.address,
+        0,
+        { value: MIN_CANCEL_VALUE },
+    );
+    expect(cancel).toHaveSuccessfulTx<CancelProposal>({
+        from: ownerA.address,
+        to: cancelledContract.address,
+    });
+    expect(cancelledContract.canPrune(0)).toBeTrue();
+
+    val expiresAt = blockchain.now() + DEFAULT_EXPIRY_SECONDS;
+    val createExpired = cancelledContract.sendCreatePayoutProposal(
+        ownerA.address,
+        outsider.address,
+        ton("0.20"),
+        expiresAt,
+        { value: MIN_CREATE_VALUE },
+    );
+    expect(createExpired).toHaveSuccessfulTx<CreatePayoutProposal>({
+        from: ownerA.address,
+        to: cancelledContract.address,
+    });
+    testSetNow((expiresAt + 1) as uint32);
+    expect(cancelledContract.canPrune(1)).toBeTrue();
+
+    val (staleContract, _, _, _) = setupTreasuryWithSeededProposal(
+        ProposalStatus.Pending,
+        1,
+        blockchain.now() + DEFAULT_EXPIRY_SECONDS,
+    );
+    expect(staleContract.canPrune(0)).toBeTrue();
+}
+
 fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
     val ownerA = testTreasury("ownerA");
     val ownerB = testTreasury("ownerB");
     val outsider = testTreasury("outsider");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -1895,10 +2542,10 @@ fun setupTreasury(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
         configThresholdMutable: false,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
-        approvals: [],
     });
 
     val res = contract.deploy(ownerA.address, { value: ton("1.00") });
@@ -1913,8 +2560,8 @@ fun setupTreasuryMutableConfig(): (Treasury, TestTreasury, TestTreasury, TestTre
     val outsider = testTreasury("mutableOutsider");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -1923,10 +2570,10 @@ fun setupTreasuryMutableConfig(): (Treasury, TestTreasury, TestTreasury, TestTre
         configThresholdMutable: true,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
-        approvals: [],
     });
 
     val res = contract.deploy(ownerA.address, { value: ton("1.00") });
@@ -1954,10 +2601,10 @@ fun setupThreeOwnerTreasury(
         configThresholdMutable: mutable,
         configVersion: 0,
         proposalSeqno: 0,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
-        approvals: [],
     });
 
     val res = contract.deploy(ownerA.address, { value: ton("1.00") });
@@ -1966,10 +2613,73 @@ fun setupThreeOwnerTreasury(
     return (contract, ownerA, ownerB, ownerC, outsider);
 }
 
+fun setupTreasuryAtProposalCap(
+    mutable: bool,
+): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
+    val ownerA = testTreasury("capOwnerA");
+    val ownerB = testTreasury("capOwnerB");
+    val outsider = testTreasury("capOutsider");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 2,
+        configThreshold: 2,
+        configThresholdMutable: mutable,
+        configVersion: 0,
+        proposalSeqno: 0,
+        retainedProposalCount: MAX_RETAINED_PROPOSALS,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveSuccessfulDeploy({ to: contract.address });
+
+    return (contract, ownerA, ownerB, outsider);
+}
+
+fun setupTreasuryWithMissingProposalBelowSeqno(): (
+    Treasury,
+    TestTreasury,
+    TestTreasury,
+    TestTreasury,
+) {
+    val ownerA = testTreasury("missingBelowSeqnoOwnerA");
+    val ownerB = testTreasury("missingBelowSeqnoOwnerB");
+    val outsider = testTreasury("missingBelowSeqnoOutsider");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 2,
+        configThreshold: 2,
+        configThresholdMutable: false,
+        configVersion: 0,
+        proposalSeqno: 1,
+        retainedProposalCount: 0,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveSuccessfulDeploy({ to: contract.address });
+
+    return (contract, ownerA, ownerB, outsider);
+}
+
 fun twoOwners(ownerA: TestTreasury, ownerB: TestTreasury): map<address, uint8> {
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
     return owners;
 }
 
@@ -1979,9 +2689,9 @@ fun threeOwners(
     ownerC: TestTreasury,
 ): map<address, uint8> {
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
-    owners.set(ownerC.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
+    owners.set(ownerC.address, OWNER_INDEX_2);
     return owners;
 }
 
@@ -2003,8 +2713,8 @@ fun setupTreasuryWithSeededProposal(
     val recipient = testTreasury("seededRecipient");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val proposal = Proposal {
         id: 0,
@@ -2015,6 +2725,7 @@ fun setupTreasuryWithSeededProposal(
         configVersionAtCreation: 0,
         status,
         approvalCount,
+        approvalMask: seededApprovalMask(approvalCount),
         payload: PayoutTonPayload {
             recipient: recipient.address,
             amount: ton("0.20"),
@@ -2023,12 +2734,6 @@ fun setupTreasuryWithSeededProposal(
 
     var proposals: map<uint64, Cell<Proposal>> = [];
     proposals.set(0, proposal.toCell());
-
-    var approvals: map<uint256, uint8> = [];
-    approvals.set(approvalKey(proposal.kind, 0, ownerA.address), APPROVAL_KEY_VALUE);
-    if (approvalCount >= 2) {
-        approvals.set(approvalKey(proposal.kind, 0, ownerB.address), APPROVAL_KEY_VALUE);
-    }
 
     val contract = Treasury.fromStorage(Storage {
         ownerCount: 2,
@@ -2037,10 +2742,10 @@ fun setupTreasuryWithSeededProposal(
         configThresholdMutable: false,
         configVersion: 1,
         proposalSeqno: 1,
+        retainedProposalCount: 1,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals,
-        approvals,
     });
 
     val res = contract.deploy(ownerA.address, { value: ton("1.00") });
@@ -2049,109 +2754,15 @@ fun setupTreasuryWithSeededProposal(
     return (contract, ownerA, ownerB, recipient);
 }
 
-fun setupTreasuryWithWrongKindApproval(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
-    val ownerA = testTreasury("wrongKindApprovalOwnerA");
-    val ownerB = testTreasury("wrongKindApprovalOwnerB");
-    val recipient = testTreasury("wrongKindApprovalRecipient");
-
-    var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
-
-    val proposal = Proposal {
-        id: 0,
-        kind: ProposalKind.PayoutTon,
-        creator: ownerA.address,
-        createdAt: blockchain.now() as uint32,
-        expiresAt: blockchain.now() + DEFAULT_EXPIRY_SECONDS,
-        configVersionAtCreation: 0,
-        status: ProposalStatus.Pending,
-        approvalCount: 1,
-        payload: PayoutTonPayload {
-            recipient: recipient.address,
-            amount: ton("0.20"),
-        },
-    };
-
-    var proposals: map<uint64, Cell<Proposal>> = [];
-    proposals.set(0, proposal.toCell());
-
-    var approvals: map<uint256, uint8> = [];
-    approvals.set(
-        approvalKey(ProposalKind.SetTreasuryConfig, 0, ownerA.address),
-        APPROVAL_KEY_VALUE,
-    );
-
-    val contract = Treasury.fromStorage(Storage {
-        ownerCount: 2,
-        payoutThreshold: 2,
-        configThreshold: 2,
-        configThresholdMutable: false,
-        configVersion: 0,
-        proposalSeqno: 1,
-        feeReserve: DEFAULT_FEE_RESERVE,
-        owners,
-        proposals,
-        approvals,
-    });
-
-    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
-    expect(res).toHaveSuccessfulDeploy({ to: contract.address });
-
-    return (contract, ownerA, ownerB, recipient);
-}
-
-fun setupTreasuryWithLegacyIdOnlyApproval(): (Treasury, TestTreasury, TestTreasury, TestTreasury) {
-    val ownerA = testTreasury("legacyApprovalOwnerA");
-    val ownerB = testTreasury("legacyApprovalOwnerB");
-    val recipient = testTreasury("legacyApprovalRecipient");
-
-    var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
-
-    val proposal = Proposal {
-        id: 0,
-        kind: ProposalKind.PayoutTon,
-        creator: ownerA.address,
-        createdAt: blockchain.now() as uint32,
-        expiresAt: blockchain.now() + DEFAULT_EXPIRY_SECONDS,
-        configVersionAtCreation: 0,
-        status: ProposalStatus.Pending,
-        approvalCount: 1,
-        payload: PayoutTonPayload {
-            recipient: recipient.address,
-            amount: ton("0.20"),
-        },
-    };
-
-    var proposals: map<uint64, Cell<Proposal>> = [];
-    proposals.set(0, proposal.toCell());
-
-    var approvals: map<uint256, uint8> = [];
-    approvals.set(legacyIdOnlyApprovalKey(0, ownerA.address), APPROVAL_KEY_VALUE);
-
-    val contract = Treasury.fromStorage(Storage {
-        ownerCount: 2,
-        payoutThreshold: 2,
-        configThreshold: 2,
-        configThresholdMutable: false,
-        configVersion: 0,
-        proposalSeqno: 1,
-        feeReserve: DEFAULT_FEE_RESERVE,
-        owners,
-        proposals,
-        approvals,
-    });
-
-    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
-    expect(res).toHaveSuccessfulDeploy({ to: contract.address });
-
-    return (contract, ownerA, ownerB, recipient);
-}
-
-fun legacyIdOnlyApprovalKey(proposalId: uint64, owner: address): uint256 {
-    return beginCell().storeUint(proposalId, 64).storeAddress(owner).endCell().hash();
+fun seededApprovalMask(approvalCount: uint8): uint16 {
+    var mask: uint16 = 0;
+    if (approvalCount >= 1) {
+        mask = mask | ((1 as uint16) << OWNER_INDEX_0);
+    }
+    if (approvalCount >= 2) {
+        mask = mask | ((1 as uint16) << OWNER_INDEX_1);
+    }
+    return mask;
 }
 
 fun createProposal(contract: Treasury, creator: TestTreasury, recipient: address, amount: coins) {
@@ -2182,6 +2793,20 @@ fun executeProposal(contract: Treasury, owner: TestTreasury, proposalId: uint64)
         from: owner.address,
         to: contract.address,
     });
+}
+
+fun expectNoActionMessages(res: SendResultList) {
+    val rootTx = res.at(0).tx.load();
+    val descr = rootTx.description.load();
+    if (descr is TlbTransOrd) {
+        val actionCell = descr.action.unwrapOr(null);
+        if (actionCell != null) {
+            val action = actionCell!.load();
+            expect(action.msgsCreated).toEqual(0);
+        }
+    } else {
+        throw 999;
+    }
 }
 
 fun expectSuccessfulPayoutActionPhase(res: SendResultList) {

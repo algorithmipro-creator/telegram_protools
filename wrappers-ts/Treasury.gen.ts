@@ -137,9 +137,9 @@ class StackReader {
 type coins = bigint
 
 type uint8 = bigint
+type uint16 = bigint
 type uint32 = bigint
 type uint64 = bigint
-type uint256 = bigint
 
 /**
  > enum ProposalStatus { 3 variants }
@@ -183,7 +183,7 @@ export const ProposalKind = {
 }
 
 /**
- > enum ProposalViewStatus { 6 variants }
+ > enum ProposalViewStatus { 8 variants }
  */
 export type ProposalViewStatus = bigint
 
@@ -194,6 +194,8 @@ export const ProposalViewStatus = {
     Cancelled: 3n,
     Expired: 4n,
     Stale: 5n,
+    Pruned: 6n,
+    NotFound: 7n,
 
     fromSlice(s: c.Slice): ProposalViewStatus {
         return s.loadUintBig(8);
@@ -343,6 +345,7 @@ export const ProposalPayload = {
  >     configVersionAtCreation: uint32
  >     status: ProposalStatus
  >     approvalCount: uint8
+ >     approvalMask: uint16
  >     payload: ProposalPayload
  > }
  */
@@ -356,6 +359,7 @@ export interface Proposal {
     configVersionAtCreation: uint32
     status: ProposalStatus
     approvalCount: uint8
+    approvalMask: uint16
     payload: ProposalPayload
 }
 
@@ -369,6 +373,7 @@ export const Proposal = {
         configVersionAtCreation: uint32
         status: ProposalStatus
         approvalCount: uint8
+        approvalMask: uint16
         payload: ProposalPayload
     }): Proposal {
         return {
@@ -387,6 +392,7 @@ export const Proposal = {
             configVersionAtCreation: s.loadUintBig(32),
             status: ProposalStatus.fromSlice(s),
             approvalCount: s.loadUintBig(8),
+            approvalMask: s.loadUintBig(16),
             payload: ProposalPayload.fromSlice(s),
         }
     },
@@ -399,6 +405,7 @@ export const Proposal = {
         b.storeUint(self.configVersionAtCreation, 32);
         ProposalStatus.store(self.status, b);
         b.storeUint(self.approvalCount, 8);
+        b.storeUint(self.approvalMask, 16);
         ProposalPayload.store(self.payload, b);
     },
     toCell(self: Proposal): c.Cell {
@@ -417,6 +424,7 @@ export const Proposal = {
  >     currentConfigVersion: uint32
  >     status: ProposalViewStatus
  >     approvalCount: uint8
+ >     approvalMask: uint16
  >     requiredApprovalCount: uint8
  >     payoutRecipient: address
  >     payoutAmount: coins
@@ -439,6 +447,7 @@ export interface ProposalView {
     currentConfigVersion: uint32
     status: ProposalViewStatus
     approvalCount: uint8
+    approvalMask: uint16
     requiredApprovalCount: uint8
     payoutRecipient: c.Address
     payoutAmount: coins
@@ -461,6 +470,7 @@ export const ProposalView = {
         currentConfigVersion: uint32
         status: ProposalViewStatus
         approvalCount: uint8
+        approvalMask: uint16
         requiredApprovalCount: uint8
         payoutRecipient: c.Address
         payoutAmount: coins
@@ -488,6 +498,7 @@ export const ProposalView = {
             currentConfigVersion: s.loadUintBig(32),
             status: ProposalViewStatus.fromSlice(s),
             approvalCount: s.loadUintBig(8),
+            approvalMask: s.loadUintBig(16),
             requiredApprovalCount: s.loadUintBig(8),
             payoutRecipient: s.loadAddress(),
             payoutAmount: s.loadCoins(),
@@ -509,6 +520,7 @@ export const ProposalView = {
         b.storeUint(self.currentConfigVersion, 32);
         ProposalViewStatus.store(self.status, b);
         b.storeUint(self.approvalCount, 8);
+        b.storeUint(self.approvalMask, 16);
         b.storeUint(self.requiredApprovalCount, 8);
         b.storeAddress(self.payoutRecipient);
         b.storeCoins(self.payoutAmount);
@@ -532,10 +544,10 @@ export const ProposalView = {
  >     configThresholdMutable: bool
  >     configVersion: uint32
  >     proposalSeqno: uint64
+ >     retainedProposalCount: uint16
  >     feeReserve: coins
  >     owners: map<address, uint8>
  >     proposals: map<uint64, Cell<Proposal>>
- >     approvals: map<uint256, uint8>
  > }
  */
 export interface Storage {
@@ -546,10 +558,10 @@ export interface Storage {
     configThresholdMutable: boolean
     configVersion: uint32
     proposalSeqno: uint64
+    retainedProposalCount: uint16
     feeReserve: coins
     owners: c.Dictionary<c.Address, uint8>
     proposals: c.Dictionary<uint64, CellRef<Proposal>>
-    approvals: c.Dictionary<uint256, uint8>
 }
 
 export const Storage = {
@@ -560,10 +572,10 @@ export const Storage = {
         configThresholdMutable: boolean
         configVersion: uint32
         proposalSeqno: uint64
+        retainedProposalCount: uint16
         feeReserve: coins
         owners: c.Dictionary<c.Address, uint8>
         proposals: c.Dictionary<uint64, CellRef<Proposal>>
-        approvals: c.Dictionary<uint256, uint8>
     }): Storage {
         return {
             $: 'Storage',
@@ -579,13 +591,13 @@ export const Storage = {
             configThresholdMutable: s.loadBoolean(),
             configVersion: s.loadUintBig(32),
             proposalSeqno: s.loadUintBig(64),
+            retainedProposalCount: s.loadUintBig(16),
             feeReserve: s.loadCoins(),
             owners: c.Dictionary.load<c.Address, uint8>(c.Dictionary.Keys.Address(), c.Dictionary.Values.BigUint(8), s),
             proposals: c.Dictionary.load<uint64, CellRef<Proposal>>(c.Dictionary.Keys.BigUint(64), createDictionaryValue<CellRef<Proposal>>(
                 (s) => loadCellRef<Proposal>(s, Proposal.fromSlice),
                 (v,b) => storeCellRef<Proposal>(v, b, Proposal.store)
             ), s),
-            approvals: c.Dictionary.load<uint256, uint8>(c.Dictionary.Keys.BigUint(256), c.Dictionary.Values.BigUint(8), s),
         }
     },
     store(self: Storage, b: c.Builder): void {
@@ -595,13 +607,13 @@ export const Storage = {
         b.storeBit(self.configThresholdMutable);
         b.storeUint(self.configVersion, 32);
         b.storeUint(self.proposalSeqno, 64);
+        b.storeUint(self.retainedProposalCount, 16);
         b.storeCoins(self.feeReserve);
         b.storeDict<c.Address, uint8>(self.owners, c.Dictionary.Keys.Address(), c.Dictionary.Values.BigUint(8));
         b.storeDict<uint64, CellRef<Proposal>>(self.proposals, c.Dictionary.Keys.BigUint(64), createDictionaryValue<CellRef<Proposal>>(
             (s) => loadCellRef<Proposal>(s, Proposal.fromSlice),
             (v,b) => storeCellRef<Proposal>(v, b, Proposal.store)
         ));
-        b.storeDict<uint256, uint8>(self.approvals, c.Dictionary.Keys.BigUint(256), c.Dictionary.Values.BigUint(8));
     },
     toCell(self: Storage): c.Cell {
         return makeCellFrom<Storage>(self, Storage.store);
@@ -828,6 +840,43 @@ export const CreateConfigProposal = {
     }
 }
 
+/**
+ > struct (0x54524606) PruneProposal {
+ >     proposalId: uint64
+ > }
+ */
+export interface PruneProposal {
+    readonly $: 'PruneProposal'
+    proposalId: uint64
+}
+
+export const PruneProposal = {
+    PREFIX: 0x54524606,
+
+    create(args: {
+        proposalId: uint64
+    }): PruneProposal {
+        return {
+            $: 'PruneProposal',
+            ...args
+        }
+    },
+    fromSlice(s: c.Slice): PruneProposal {
+        loadAndCheckPrefix32(s, 0x54524606, 'PruneProposal');
+        return {
+            $: 'PruneProposal',
+            proposalId: s.loadUintBig(64),
+        }
+    },
+    store(self: PruneProposal, b: c.Builder): void {
+        b.storeUint(0x54524606, 32);
+        b.storeUint(self.proposalId, 64);
+    },
+    toCell(self: PruneProposal): c.Cell {
+        return makeCellFrom<PruneProposal>(self, PruneProposal.store);
+    }
+}
+
 // ————————————————————————————————————————————
 //    class Treasury
 //
@@ -867,7 +916,7 @@ function calculateDeployedAddress(code: c.Cell, data: c.Cell, options: DeployedA
 }
 
 export class Treasury implements c.Contract {
-    static CodeCell = c.Cell.fromBase64('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');
+    static CodeCell = c.Cell.fromBase64('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');
 
     static Errors = {
         'Errors.NotOwner': 128,
@@ -892,6 +941,9 @@ export class Treasury implements c.Contract {
         'Errors.InvalidFeeReserve': 148,
         'Errors.ProposalStale': 149,
         'Errors.InvalidProposalKind': 150,
+        'Errors.ProposalPruned': 151,
+        'Errors.ProposalNotPrunable': 152,
+        'Errors.ProposalLimitReached': 153,
     }
 
     readonly address: c.Address
@@ -913,10 +965,10 @@ export class Treasury implements c.Contract {
         configThresholdMutable: boolean
         configVersion: uint32
         proposalSeqno: uint64
+        retainedProposalCount: uint16
         feeReserve: coins
         owners: c.Dictionary<c.Address, uint8>
         proposals: c.Dictionary<uint64, CellRef<Proposal>>
-        approvals: c.Dictionary<uint256, uint8>
     }, deployedOptions?: DeployedAddrOptions) {
         const initialState = {
             code: deployedOptions?.overrideContractCode ?? Treasury.CodeCell,
@@ -961,6 +1013,12 @@ export class Treasury implements c.Contract {
         expiresAt: uint32
     }) {
         return CreateConfigProposal.toCell(CreateConfigProposal.create(body));
+    }
+
+    static createCellOfPruneProposal(body: {
+        proposalId: uint64
+    }) {
+        return PruneProposal.toCell(PruneProposal.create(body));
     }
 
     async sendDeploy(provider: ContractProvider, via: Sender, msgValue: coins, extraOptions?: ExtraSendOptions) {
@@ -1028,6 +1086,16 @@ export class Treasury implements c.Contract {
         });
     }
 
+    async sendPruneProposal(provider: ContractProvider, via: Sender, msgValue: coins, body: {
+        proposalId: uint64
+    }, extraOptions?: ExtraSendOptions) {
+        return provider.internal(via, {
+            value: msgValue,
+            body: PruneProposal.toCell(PruneProposal.create(body)),
+            ...extraOptions
+        });
+    }
+
     async getOwnerCount(provider: ContractProvider): Promise<uint8> {
         const r = StackReader.fromGetMethod(1, await provider.get('owner_count', []));
         return r.readBigInt();
@@ -1058,6 +1126,11 @@ export class Treasury implements c.Contract {
         return r.readBigInt();
     }
 
+    async getRetainedProposalCount(provider: ContractProvider): Promise<uint16> {
+        const r = StackReader.fromGetMethod(1, await provider.get('retained_proposal_count', []));
+        return r.readBigInt();
+    }
+
     async getFeeReserve(provider: ContractProvider): Promise<coins> {
         const r = StackReader.fromGetMethod(1, await provider.get('fee_reserve', []));
         return r.readBigInt();
@@ -1073,7 +1146,7 @@ export class Treasury implements c.Contract {
     }
 
     async getProposal(provider: ContractProvider, proposalId: uint64): Promise<ProposalView> {
-        const r = StackReader.fromGetMethod(18, await provider.get('proposal', [
+        const r = StackReader.fromGetMethod(19, await provider.get('proposal', [
             { type: 'int', value: proposalId },
         ]));
         return ({
@@ -1087,6 +1160,7 @@ export class Treasury implements c.Contract {
             currentConfigVersion: r.readBigInt(),
             status: r.readBigInt(),
             approvalCount: r.readBigInt(),
+            approvalMask: r.readBigInt(),
             requiredApprovalCount: r.readBigInt(),
             payoutRecipient: r.readSlice().loadAddress(),
             payoutAmount: r.readBigInt(),
@@ -1097,6 +1171,20 @@ export class Treasury implements c.Contract {
             newConfigThreshold: r.readBigInt(),
             newFeeReserve: r.readBigInt(),
         });
+    }
+
+    async getProposalStatus(provider: ContractProvider, proposalId: uint64): Promise<ProposalViewStatus> {
+        const r = StackReader.fromGetMethod(1, await provider.get('proposal_status', [
+            { type: 'int', value: proposalId },
+        ]));
+        return r.readBigInt();
+    }
+
+    async getCanPrune(provider: ContractProvider, proposalId: uint64): Promise<boolean> {
+        const r = StackReader.fromGetMethod(1, await provider.get('can_prune', [
+            { type: 'int', value: proposalId },
+        ]));
+        return r.readBoolean();
     }
 
     async getProposalKind(provider: ContractProvider, proposalId: uint64): Promise<ProposalKind> {

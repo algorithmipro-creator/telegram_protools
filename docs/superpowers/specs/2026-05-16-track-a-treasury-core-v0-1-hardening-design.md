@@ -1,12 +1,14 @@
 # Track A Treasury Core v0.1 Hardening Design
 
+Historical phase note: this document described the pre-governance Core v0.1 hardening scope. Later typed governance/config proposals supersede the deploy-time owner/threshold assumption; see `docs/superpowers/specs/2026-05-17-treasury-governance-config-design.md`. Normal payout proposals still cannot change Treasury config.
+
 ## Purpose
 
 Harden the current Track A Treasury Core before any governance, Splitter, Telegram Mini App, backend, Jetton, or arbitrary payload work.
 
 Treasury Core v0.1 remains a narrow TON payout treasury:
 
-- Owners and threshold are immutable after deploy.
+- For this pre-governance phase, owners and payout threshold are treated as deploy-time config.
 - The only proposal action is a TON payout.
 - Plain empty-body deposits remain allowed.
 - Owners create, approve, cancel, and execute payout proposals.

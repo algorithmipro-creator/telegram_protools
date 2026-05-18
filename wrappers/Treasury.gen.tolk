@@ -131,6 +131,21 @@ fun Treasury.sendCreateConfigProposal(
     return net.send(from, genericMsg);
 }
 
+fun Treasury.sendPruneProposal(
+    self,
+    from: address,
+    proposalId: uint64,
+    config: SendParams = {},
+): SendResultList {
+    val genericMsg = createMessage({
+        bounce: config.bounce,
+        value: config.value,
+        dest: self.address,
+        body: PruneProposal { proposalId },
+    });
+    return net.send(from, genericMsg);
+}
+
 /// Send message to the contract with a custom body cell
 fun Treasury.sendAny(self, from: address, body: cell, config: SendParams = {}): SendResultList {
     val genericMsg = createMessage({
@@ -166,6 +181,10 @@ fun Treasury.proposalSeqno(self): uint64 {
     return net.runGetMethod(self.address, "proposal_seqno");
 }
 
+fun Treasury.retainedProposalCount(self): uint16 {
+    return net.runGetMethod(self.address, "retained_proposal_count");
+}
+
 fun Treasury.feeReserve(self): coins {
     return net.runGetMethod(self.address, "fee_reserve");
 }
@@ -176,6 +195,14 @@ fun Treasury.isOwner(self, owner: address): bool {
 
 fun Treasury.proposal(self, proposalId: uint64): ProposalView {
     return net.runGetMethod(self.address, "proposal", [proposalId]);
+}
+
+fun Treasury.proposalStatus(self, proposalId: uint64): ProposalViewStatus {
+    return net.runGetMethod(self.address, "proposal_status", [proposalId]);
+}
+
+fun Treasury.canPrune(self, proposalId: uint64): bool {
+    return net.runGetMethod(self.address, "can_prune", [proposalId]);
 }
 
 fun Treasury.proposalKind(self, proposalId: uint64): ProposalKind {

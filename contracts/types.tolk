@@ -1,7 +1,9 @@
-const OWNER_KEY_VALUE: uint8 = 1
-const APPROVAL_KEY_VALUE: uint8 = 1
+const OWNER_INDEX_0: uint8 = 0
+const OWNER_INDEX_1: uint8 = 1
+const OWNER_INDEX_2: uint8 = 2
 const MIN_OWNER_COUNT: uint8 = 2
 const MAX_OWNER_COUNT: uint8 = 10
+const MAX_RETAINED_PROPOSALS: uint16 = 100
 const DEFAULT_EXPIRY_SECONDS: uint32 = 86400
 const MAX_EXPIRY_SECONDS: uint32 = 2592000
 const DEFAULT_FEE_RESERVE: coins = ton("0.10")
@@ -10,6 +12,7 @@ const MIN_CREATE_VALUE: coins = ton("0.05")
 const MIN_APPROVE_VALUE: coins = ton("0.05")
 const MIN_CANCEL_VALUE: coins = ton("0.05")
 const MIN_EXECUTE_VALUE: coins = ton("0.05")
+const MIN_PRUNE_VALUE: coins = ton("0.05")
 
 enum Errors {
     NotOwner = 128
@@ -35,6 +38,9 @@ enum Errors {
     InvalidFeeReserve = 148
     ProposalStale = 149
     InvalidProposalKind = 150
+    ProposalPruned = 151
+    ProposalNotPrunable = 152
+    ProposalLimitReached = 153
 }
 
 enum ProposalStatus: uint8 {
@@ -55,6 +61,8 @@ enum ProposalViewStatus: uint8 {
     Cancelled = 3
     Expired = 4
     Stale = 5
+    Pruned = 6
+    NotFound = 7
 }
 
 struct (0x54525001) PayoutTonPayload {
@@ -81,6 +89,7 @@ struct Proposal {
     configVersionAtCreation: uint32
     status: ProposalStatus
     approvalCount: uint8
+    approvalMask: uint16
     payload: ProposalPayload
 }
 
@@ -94,6 +103,7 @@ struct ProposalView {
     currentConfigVersion: uint32
     status: ProposalViewStatus
     approvalCount: uint8
+    approvalMask: uint16
     requiredApprovalCount: uint8
     payoutRecipient: address
     payoutAmount: coins
@@ -112,10 +122,10 @@ struct Storage {
     configThresholdMutable: bool
     configVersion: uint32
     proposalSeqno: uint64
+    retainedProposalCount: uint16
     feeReserve: coins
     owners: map<address, uint8>
     proposals: map<uint64, Cell<Proposal>>
-    approvals: map<uint256, uint8>
 }
 
 fun Storage.load(): Storage {
@@ -130,6 +140,7 @@ fun Storage.assertValidConfig(self) {
     assert (self.ownerCount >= MIN_OWNER_COUNT) throw Errors.InvalidOwnerCount;
     assert (self.ownerCount <= MAX_OWNER_COUNT) throw Errors.InvalidOwnerCount;
     assert (self.ownerMapCount() == self.ownerCount) throw Errors.DuplicateOwner;
+    ownerIndexMask(self.owners, self.ownerCount);
     assert (self.payoutThreshold > 0) throw Errors.InvalidPayoutThreshold;
     assert (self.configThreshold > 0) throw Errors.InvalidConfigThreshold;
     assert (self.payoutThreshold <= self.configThreshold) throw Errors.InvalidConfigThreshold;
@@ -148,6 +159,7 @@ fun Storage.assertValidProposedConfig(
     assert (newOwnerCount >= MIN_OWNER_COUNT) throw Errors.InvalidOwnerCount;
     assert (newOwnerCount <= MAX_OWNER_COUNT) throw Errors.InvalidOwnerCount;
     assert (ownerMapCount(newOwners) == newOwnerCount) throw Errors.DuplicateOwner;
+    ownerIndexMask(newOwners, newOwnerCount);
     assert (newPayoutThreshold > 0) throw Errors.InvalidPayoutThreshold;
     assert (newPayoutThreshold <= newConfigThreshold) throw Errors.InvalidConfigThreshold;
     assert (newConfigThreshold <= newOwnerCount) throw Errors.InvalidConfigThreshold;
@@ -171,6 +183,20 @@ fun Storage.ownerMapCount(self): int {
     return ownerMapCount(self.owners);
 }
 
+fun ownerIndexMask(owners: map<address, uint8>, ownerCount: uint8): uint16 {
+    var mask: uint16 = 0;
+    var entry = owners.findFirst();
+    while (entry.isFound) {
+        val index = entry.loadValue();
+        assert (index < ownerCount) throw Errors.InvalidOwnerCount;
+        val bit = (1 as uint16) << index;
+        assert ((mask & bit) == 0) throw Errors.DuplicateOwner;
+        mask = mask | bit;
+        entry = owners.iterateNext(entry);
+    }
+    return mask;
+}
+
 fun Storage.isOwner(self, owner: address): bool {
     return self.owners.exists(owner);
 }
@@ -190,13 +216,10 @@ fun Storage.requiredThreshold(self, kind: ProposalKind): uint8 {
     return 0;
 }
 
-fun approvalKey(kind: ProposalKind, proposalId: uint64, owner: address): uint256 {
-    return beginCell()
-        .storeUint(kind as int, 8)
-        .storeUint(proposalId, 64)
-        .storeAddress(owner)
-        .endCell()
-        .hash();
+fun Storage.ownerApprovalBit(self, owner: address): uint16 {
+    val index = self.owners.mustGet(owner, Errors.NotOwner);
+    assert (index < self.ownerCount) throw Errors.InvalidOwnerCount;
+    return (1 as uint16) << index;
 }
 
 fun Storage.mustGetProposal(self, proposalId: uint64): Proposal {
@@ -267,6 +290,7 @@ fun Proposal.toView(self, currentConfigVersion: uint32, threshold: uint8): Propo
         currentConfigVersion,
         status: self.viewStatus(currentConfigVersion, threshold),
         approvalCount: self.approvalCount,
+        approvalMask: self.approvalMask,
         requiredApprovalCount: threshold,
         payoutRecipient,
         payoutAmount,
@@ -276,6 +300,30 @@ fun Proposal.toView(self, currentConfigVersion: uint32, threshold: uint8): Propo
         newPayoutThreshold,
         newConfigThreshold,
         newFeeReserve,
+    };
+}
+
+fun emptyProposalView(proposalId: uint64, status: ProposalViewStatus): ProposalView {
+    return ProposalView {
+        id: proposalId,
+        kind: ProposalKind.PayoutTon,
+        creator: zeroAddress(),
+        createdAt: 0,
+        expiresAt: 0,
+        configVersionAtCreation: 0,
+        currentConfigVersion: 0,
+        status,
+        approvalCount: 0,
+        approvalMask: 0,
+        requiredApprovalCount: 0,
+        payoutRecipient: zeroAddress(),
+        payoutAmount: 0,
+        recipient: zeroAddress(),
+        amount: 0,
+        newOwnerCount: 0,
+        newPayoutThreshold: 0,
+        newConfigThreshold: 0,
+        newFeeReserve: 0,
     };
 }
 
@@ -306,9 +354,14 @@ struct (0x54524605) CreateConfigProposal {
     expiresAt: uint32
 }
 
+struct (0x54524606) PruneProposal {
+    proposalId: uint64
+}
+
 type TreasuryMessage =
     | CreatePayoutProposal
     | ApproveProposal
     | ExecuteProposal
     | CancelProposal
     | CreateConfigProposal
+    | PruneProposal

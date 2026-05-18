@@ -25,7 +25,7 @@ This document is policy evidence, not an audit report. The estimates are based o
 ## Interpretation
 
 - `0.1 TON` is acceptable for low-value MVP/testnet validation with a small number of proposals.
-- `0.1 TON` is not enough for a mainnet treasury that keeps long-lived proposal history on-chain.
+- `0.1 TON` remains testnet/MVP only and is not enough for a mainnet treasury that keeps long-lived proposal history on-chain.
 - At 100 retained proposals, a 10-year reserve estimate is already about `2.81 TON` before safety margin.
 - At 1000 retained proposals, on-chain history retention is not a normal treasury design; it requires cleanup/indexer architecture or very high reserve.
 
@@ -44,7 +44,11 @@ These tiers are planning defaults, not immutable protocol constants. Before main
 
 Track A must not rely on unlimited on-chain proposal and approval history.
 
-Mainnet candidate work must choose one of these paths before public launch:
+Phase 4 implements owner-only pruning for `Executed`, `Cancelled`, `Expired`, and `Stale` proposals. `Pending` and `Executable` current-version proposals are not prunable. v1 also sets `MAX_RETAINED_PROPOSALS = 100`, so new proposal creation is blocked at the retained cap until pruning frees a slot.
+
+Approvals are stored inside proposal records as approval masks. Pruning a proposal deletes its approval state with the proposal and does not leave orphan approval records.
+
+Full proposal history belongs off-chain or in an indexer. Mainnet candidate work must choose one of these paths before public launch:
 
 - Keep only active or recently terminal proposals on-chain and prune terminal proposals after a safe visibility window.
 - Store long-term user-facing history in an off-chain indexer, reproducible from transaction history.
@@ -54,15 +58,15 @@ Recommended direction: hybrid retention. Keep security-critical active state on-
 
 ## Governance Note
 
-`threshold` remains immutable in the Track A MVP. Changing `threshold`, owner set, or reserve policy changes the security model and must not be added as a normal payout proposal.
+Governance/config changes are typed config proposals, not normal payout proposals. Owner set, `payoutThreshold`, `configThreshold`, and `feeReserve` changes are approved by current owners under the current `configThreshold`, and executed config must satisfy the contract's threshold and owner-count constraints.
 
-Future governance/config changes require a separate design with stronger approval rules, such as supermajority or unanimous approval, plus explicit UI warnings and potentially time locks.
+Any future expansion beyond typed config proposals, such as arbitrary payload governance, requires a separate design with stronger review, explicit UI warnings, and potentially time locks.
 
 ## Mainnet Requirements
 
-- Measure max-state cells/bits in deterministic sandbox tests.
-- Decide retention policy: bounded on-chain history, cleanup/pruning, or indexer-backed history.
-- Set `feeReserve` from measured max-state size and target reserve lifetime.
+- Measure max-state cells/bits in deterministic sandbox tests, including the Phase 4 retained cap behavior.
+- Decide retention policy for historical UX/audit data: bounded on-chain history plus pruning, indexer-backed history, or both.
+- Recalculate `feeReserve` from current network config, measured max-state size, and target reserve lifetime.
 - Add monitoring/alerts for Treasury balance approaching reserve.
 - Keep mainnet blocked until security review accepts the reserve and retention policy.
 
@@ -70,4 +74,4 @@ Future governance/config changes require a separate design with stronger approva
 
 - Estimates are approximate and based on current observed Track A state plus linear scaling assumptions.
 - Network config can change; values must be regenerated before mainnet release.
-- This document does not implement cleanup, pruning, indexer behavior, or contract-level reserve changes.
+- Phase 4 implements contract-level proposal pruning and a retained proposal cap, but this document does not implement indexer behavior or a mainnet reserve recalculation.

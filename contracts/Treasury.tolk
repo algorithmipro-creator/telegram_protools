@@ -21,6 +21,9 @@ fun onInternalMessage(in: InMessage) {
             storage.assertValidConfig();
             requireMinValue(in.valueCoins, MIN_CREATE_VALUE);
             storage.assertOwner(in.senderAddress);
+            assert (
+                storage.retainedProposalCount < MAX_RETAINED_PROPOSALS
+            ) throw Errors.ProposalLimitReached;
             val now = blockchain.now();
             assert (msg.recipient != contract.getAddress()) throw Errors.InvalidRecipient;
             assert (msg.amount > 0) throw Errors.InvalidAmount;
@@ -37,6 +40,7 @@ fun onInternalMessage(in: InMessage) {
                 configVersionAtCreation: storage.configVersion,
                 status: ProposalStatus.Pending,
                 approvalCount: 1,
+                approvalMask: storage.ownerApprovalBit(in.senderAddress),
                 payload: PayoutTonPayload {
                     recipient: msg.recipient,
                     amount: msg.amount,
@@ -44,12 +48,7 @@ fun onInternalMessage(in: InMessage) {
             };
 
             storage.proposals.set(proposalId, proposal.toCell());
-            storage
-                .approvals
-                .set(
-                    approvalKey(proposal.kind, proposalId, in.senderAddress),
-                    APPROVAL_KEY_VALUE,
-                );
+            storage.retainedProposalCount = storage.retainedProposalCount + 1;
             storage.proposalSeqno = proposalId + 1;
             storage.save();
         }
@@ -58,6 +57,9 @@ fun onInternalMessage(in: InMessage) {
             storage.assertValidConfig();
             requireMinValue(in.valueCoins, MIN_CREATE_VALUE);
             storage.assertOwner(in.senderAddress);
+            assert (
+                storage.retainedProposalCount < MAX_RETAINED_PROPOSALS
+            ) throw Errors.ProposalLimitReached;
             val now = blockchain.now();
             assert (msg.expiresAt > now) throw Errors.InvalidExpiry;
             assert (msg.expiresAt <= now + MAX_EXPIRY_SECONDS) throw Errors.InvalidExpiry;
@@ -79,6 +81,7 @@ fun onInternalMessage(in: InMessage) {
                 configVersionAtCreation: storage.configVersion,
                 status: ProposalStatus.Pending,
                 approvalCount: 1,
+                approvalMask: storage.ownerApprovalBit(in.senderAddress),
                 payload: SetTreasuryConfigPayload {
                     newOwnerCount: msg.newOwnerCount,
                     newPayoutThreshold: msg.newPayoutThreshold,
@@ -89,12 +92,7 @@ fun onInternalMessage(in: InMessage) {
             };
 
             storage.proposals.set(proposalId, proposal.toCell());
-            storage
-                .approvals
-                .set(
-                    approvalKey(proposal.kind, proposalId, in.senderAddress),
-                    APPROVAL_KEY_VALUE,
-                );
+            storage.retainedProposalCount = storage.retainedProposalCount + 1;
             storage.proposalSeqno = proposalId + 1;
             storage.save();
         }
@@ -110,10 +108,10 @@ fun onInternalMessage(in: InMessage) {
             assert (!proposal.isStale(storage.configVersion)) throw Errors.ProposalStale;
             assert (!proposal.isExpired()) throw Errors.ProposalExpired;
 
-            val key = approvalKey(proposal.kind, msg.proposalId, in.senderAddress);
-            assert (!storage.approvals.exists(key)) throw Errors.AlreadyApproved;
+            val approvalBit = storage.ownerApprovalBit(in.senderAddress);
+            assert ((proposal.approvalMask & approvalBit) == 0) throw Errors.AlreadyApproved;
 
-            storage.approvals.set(key, APPROVAL_KEY_VALUE);
+            proposal.approvalMask = proposal.approvalMask | approvalBit;
             proposal.approvalCount = proposal.approvalCount + 1;
             storage.proposals.set(msg.proposalId, proposal.toCell());
             storage.save();
@@ -192,6 +190,31 @@ fun onInternalMessage(in: InMessage) {
             storage.proposals.set(msg.proposalId, proposal.toCell());
             storage.save();
         }
+        PruneProposal => {
+            var storage = lazy Storage.load();
+            storage.assertValidConfig();
+            requireMinValue(in.valueCoins, MIN_PRUNE_VALUE);
+            storage.assertOwner(in.senderAddress);
+            assert (msg.proposalId < storage.proposalSeqno) throw Errors.ProposalNotFound;
+
+            val proposalCell = storage.proposals.get(msg.proposalId);
+            assert (proposalCell.isFound) throw Errors.ProposalPruned;
+
+            val proposal = proposalCell.loadValue().load();
+            val status = proposal.viewStatus(
+                storage.configVersion,
+                storage.requiredThreshold(proposal.kind),
+            );
+            val prunable = status == ProposalViewStatus.Executed ||
+            status == ProposalViewStatus.Cancelled ||
+            status == ProposalViewStatus.Expired ||
+            status == ProposalViewStatus.Stale;
+            assert (prunable) throw Errors.ProposalNotPrunable;
+
+            assert (storage.proposals.delete(msg.proposalId)) throw Errors.ProposalPruned;
+            storage.retainedProposalCount = storage.retainedProposalCount - 1;
+            storage.save();
+        }
         else => {
             assert (in.body.isEmpty()) throw Errors.InvalidMessage;
             val storage = lazy Storage.load();
@@ -241,6 +264,11 @@ get fun proposal_seqno(): uint64 {
     return storage.proposalSeqno;
 }
 
+get fun retained_proposal_count(): uint16 {
+    val storage = lazy Storage.load();
+    return storage.retainedProposalCount;
+}
+
 get fun fee_reserve(): coins {
     val storage = lazy Storage.load();
     return storage.feeReserve;
@@ -253,8 +281,27 @@ get fun is_owner(owner: address): bool {
 
 get fun proposal(proposalId: uint64): ProposalView {
     val storage = lazy Storage.load();
-    val proposal = storage.mustGetProposal(proposalId);
+    if (proposalId >= storage.proposalSeqno) {
+        return emptyProposalView(proposalId, ProposalViewStatus.NotFound);
+    }
+    val proposalCell = storage.proposals.get(proposalId);
+    if (!proposalCell.isFound) {
+        return emptyProposalView(proposalId, ProposalViewStatus.Pruned);
+    }
+    val proposal = proposalCell.loadValue().load();
     return proposal.toView(storage.configVersion, storage.requiredThreshold(proposal.kind));
+}
+
+get fun proposal_status(proposalId: uint64): ProposalViewStatus {
+    return proposal(proposalId).status;
+}
+
+get fun can_prune(proposalId: uint64): bool {
+    val view = proposal(proposalId);
+    return view.status == ProposalViewStatus.Executed ||
+    view.status == ProposalViewStatus.Cancelled ||
+    view.status == ProposalViewStatus.Expired ||
+    view.status == ProposalViewStatus.Stale;
 }
 
 get fun proposal_kind(proposalId: uint64): ProposalKind {
@@ -281,5 +328,9 @@ get fun proposal_config_owners(proposalId: uint64): map<address, uint8> {
 get fun has_approval(proposalId: uint64, owner: address): bool {
     val storage = lazy Storage.load();
     val proposal = storage.mustGetProposal(proposalId);
-    return storage.approvals.exists(approvalKey(proposal.kind, proposalId, owner));
+    if (proposal.isStale(storage.configVersion)) {
+        return false;
+    }
+    val approvalBit = storage.ownerApprovalBit(owner);
+    return (proposal.approvalMask & approvalBit) != 0;
 }

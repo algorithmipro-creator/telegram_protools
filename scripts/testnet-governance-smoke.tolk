@@ -15,8 +15,8 @@ fun main() {
     val recipient = scripts.wallet("recipient");
 
     var owners: map<address, uint8> = [];
-    owners.set(ownerA.address, OWNER_KEY_VALUE);
-    owners.set(ownerB.address, OWNER_KEY_VALUE);
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
 
     val ownerCount: uint8 = 2;
     val payoutThreshold: uint8 = 2;
@@ -33,10 +33,10 @@ fun main() {
             configThresholdMutable: false,
             configVersion: 0,
             proposalSeqno: 0,
+            retainedProposalCount: 0,
             feeReserve: DEFAULT_FEE_RESERVE,
             owners,
             proposals: [],
-            approvals: [],
         }.toCell(),
     };
     val treasuryAddress = AutoDeployAddress { stateInit }.calculateAddress();

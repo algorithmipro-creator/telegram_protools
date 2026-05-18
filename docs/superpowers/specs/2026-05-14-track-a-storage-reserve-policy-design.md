@@ -1,5 +1,7 @@
 # Track A Storage Reserve Policy Design
 
+Historical phase note: this document described the storage-reserve policy before typed governance/config proposals existed. Later typed governance/config proposals supersede the immutable owner/threshold assumption; see `docs/superpowers/specs/2026-05-17-treasury-governance-config-design.md`. Normal payout proposals still cannot change Treasury config.
+
 ## Goal
 
 Document the Track A Treasury storage reserve policy before mainnet work continues: how much reserve is needed, why unbounded on-chain proposal history is unsafe, and what cleanup/indexing strategy is required before scale.
@@ -50,7 +52,7 @@ These tiers should be reviewed after measured max-state tests. If a future desig
 
 ## Threshold And Governance Note
 
-`threshold` remains immutable in the Track A MVP. Changing `threshold`, owner set, or reserve policy changes the security model and must not be added as a normal payout proposal. Future governance changes need a separate design with stronger approval rules, such as supermajority or unanimous approval, plus warnings and potentially time locks.
+At this storage-reserve phase, Treasury config was treated as deploy-time only. Current later phases supersede that assumption with typed config proposals: owner set, `payoutThreshold`, `configThreshold`, and `feeReserve` changes must use the approved config-proposal path and be approved by current owners under the current `configThreshold`. Normal payout proposals still cannot change Treasury config or reserve policy.
 
 ## Documentation Updates
 
@@ -66,7 +68,7 @@ Implementation should add `docs/research/track-a-storage-reserve-policy.md` and 
 - Contract code changes.
 - Implementing pruning or indexer behavior.
 - Changing `feeReserve` in deployed testnet Treasury.
-- Changing `threshold` or owner governance.
+- Changing `threshold` or owner governance in this storage-reserve phase; later typed config proposals are the approved path.
 - Mainnet deployment.
 - Final source verification transaction.
 
@@ -75,5 +77,5 @@ Implementation should add `docs/research/track-a-storage-reserve-policy.md` and 
 - Storage reserve estimates are recorded with assumptions and limitations.
 - Mainnet blockers explicitly include reserve sizing and on-chain history policy.
 - Docs state that unbounded proposal/approval history is not acceptable for mainnet scale.
-- Docs state that `threshold` remains immutable in MVP and governance changes require separate design.
+- Docs distinguish normal payout proposals from later typed config proposals, and do not imply payout proposals can change Treasury config.
 - No secrets, mnemonics, wallet files, or verifier transaction bodies are added.
