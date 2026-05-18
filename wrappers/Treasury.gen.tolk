@@ -166,6 +166,10 @@ fun Treasury.proposalSeqno(self): uint64 {
     return net.runGetMethod(self.address, "proposal_seqno");
 }
 
+fun Treasury.retainedProposalCount(self): uint16 {
+    return net.runGetMethod(self.address, "retained_proposal_count");
+}
+
 fun Treasury.feeReserve(self): coins {
     return net.runGetMethod(self.address, "fee_reserve");
 }
