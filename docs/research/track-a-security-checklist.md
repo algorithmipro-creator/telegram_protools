@@ -10,8 +10,13 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 
 | Area | Status | Evidence Or Follow-Up |
 |---|---|---|
-| Owner set | Bounded in Core v0.1, needs external review | Owners are immutable after deploy and owner count is limited to `2..10`; governance changes remain out of scope. |
-| Threshold | Covered by config validation, needs external review | Threshold must be greater than `0` and no greater than owner count; post-deploy threshold changes remain out of scope. |
+| Owner set | Covered by tests, needs external review | Owner count remains limited to `2..10`; typed config governance can update owners under current owner and config-threshold authority. |
+| Threshold | Covered by tests, needs external review | `payoutThreshold` and `configThreshold` are validated on deploy and config execution so the contract cannot enter impossible threshold states. |
+| Governance config changes | Covered by tests, needs external review | `SetTreasuryConfigProposal` updates owners, thresholds, and fee reserve atomically under current config threshold. |
+| Config threshold lock | Covered by tests, needs external review | `configThresholdMutable` is deploy-time only and immutable. |
+| Stale proposal semantics | Covered by tests, needs external review | Stale status is derived from `configVersionAtCreation` and current `configVersion`. |
+| Governance deadlock prevention | Covered by tests, needs external review | Final config rejects impossible threshold and owner-count states. |
+| Config proposal preview/getters | Covered by tests, needs external review | Proposed owner set, proposal kind, required threshold, approvals, and config fields are inspectable. |
 | Duplicate approvals | Covered by tests, needs external review | Unit tests cover duplicate approval rejection; review approval key derivation and map semantics. |
 | Proposal lifecycle | Covered by tests, needs external review | Unit tests cover pending, executable, executed, canceled, and expired paths. |
 | Expiry | Covered by tests, needs external review | Proposal creation enforces future expiry and a 30-day maximum; approve and execute reject expired proposals. |
@@ -19,7 +24,7 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 | Execute once | Covered by tests, needs external review | Unit tests and testnet flow show proposal `0` reaches `Executed`; review terminal-state enforcement. |
 | Reserve accounting | Covered by tests, needs external review | `feeReserve` uses pre-inbound balance for execute and includes exact-reserve and drain-prevention tests. |
 | Storage reserve sizing | Policy recorded, needs measured max-state tests | See `docs/research/track-a-storage-reserve-policy.md`; regenerate estimates before mainnet. |
-| Proposal history retention | Needs design before mainnet scale | Unbounded on-chain proposal/approval history is not acceptable for mainnet scale. |
+| Proposal history retention | Design drafted, implementation pending | `docs/superpowers/specs/2026-05-18-treasury-proposal-pruning-design.md` defines owner-only pruning, Pruned/NotFound semantics, approval cleanup, and retained-state cap policy. |
 | Replay and double execution | Covered by tests, needs external review | Confirm proposal IDs, status transitions, and approval keys prevent replay after terminal states. |
 | External message value assumptions | Enforced in contract, needs external review | Create, approve, cancel, and execute enforce per-operation minimum inbound values. |
 | Recipient validation | Covered by tests, needs external review | Payout recipient cannot be the Treasury contract address. |
@@ -34,6 +39,11 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 |---|---|
 | Owner validation | Every externally callable state-changing path verifies the sender is an owner when required. |
 | Threshold validation | The contract cannot enter an impossible state such as threshold `0` or threshold greater than owner count. |
+| Current config authority | Config proposal approval and execution require current owners and the current config threshold. |
+| Typed governance only | Governance changes use `SetTreasuryConfigProposal`; arbitrary payload governance remains excluded. |
+| Stale proposal semantics | Proposals created under old `configVersion` values cannot approve, execute, or cancel after a config change. |
+| Governance deadlock prevention | Executed config must satisfy `1 <= payoutThreshold <= configThreshold <= ownerCount`. |
+| Config execution atomicity | Owner set, thresholds, fee reserve, and config version updates are applied atomically or rejected. |
 | Duplicate approval prevention | One owner can contribute at most one approval per proposal. |
 | Proposal ID uniqueness | Proposal IDs are monotonic and cannot overwrite existing proposals. |
 | Lifecycle terminal states | Executed, canceled, and expired proposals cannot be approved or executed later. |
@@ -42,7 +52,7 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 | Execution atomicity | A payout cannot be marked executed unless the execution path is intended to be final. |
 | Reserve invariant | Execution cannot reduce balance below `feeReserve` except for expected gas effects. |
 | Storage reserve policy | `feeReserve` is sized from measured max-state storage and target reserve lifetime. |
-| History retention policy | Terminal proposal history is bounded on-chain or backed by a reproducible off-chain indexer. |
+| History retention policy | Terminal proposal history is bounded on-chain or backed by a reproducible off-chain indexer. Phase 4 pruning must not remove Pending or Executable current-version proposals. |
 | Replay protection | Reusing old proposal/action data cannot mutate terminal proposal state. |
 | Message value assumptions | Required inbound values are documented and enforced or intentionally delegated to operational scripts. |
 | Getter completeness | Reviewers can inspect owner count, threshold, proposals, approvals, and reserve state. |
@@ -51,13 +61,14 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 
 ## Known Evidence
 
-- Deterministic contract tests: hardening suite covers config bounds, message values, expiry bounds, recipient validation, terminal states, reserve behavior, and action-phase payout evidence.
+- Deterministic contract tests: hardening suite covers config bounds, governance/config proposal changes, stale `configVersion` semantics, message values, expiry bounds, recipient validation, terminal states, reserve behavior, and action-phase payout evidence.
 - Testnet deployment: `kQAEswTqc4bDarhACzMsgMhOXOgYcYHaXLLnwwOnMepqhSnA`.
 - Testnet manual flow: create proposal, second-owner approve, execute payout.
 - Proposal `0` final status: `Executed`.
 - Recipient received `0.05 TON` on testnet.
 - Gas/fee baseline recorded for proposal `1` create, approve, and execute: `docs/research/track-a-gas-fee-baseline.md`.
 - Storage reserve policy and mainnet retention caveats: `docs/research/track-a-storage-reserve-policy.md`.
+- Proposal pruning design: `docs/superpowers/specs/2026-05-18-treasury-proposal-pruning-design.md`.
 - Source verification dry-run: verifier backend accepted 2 source files and prepared the verification transaction body, which is not recorded in the repository.
 
 ## Mainnet Blockers
@@ -66,6 +77,6 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 - Decide Track A versus Track B with comparable evidence.
 - Send source verification transaction only after explicit approval.
 - Review recorded Track A gas/fee baseline and add rejection-path fee evidence before mainnet.
-- Measure max-state storage size and approve bounded history or cleanup/indexer strategy before mainnet.
+- Implement and test bounded history or cleanup/indexer strategy before mainnet, including deterministic approval cleanup with no orphan approval state.
 - Define operational recovery playbook for stuck proposals, expired proposals, and wallet/key loss.
 - Approve mainnet release checklist.

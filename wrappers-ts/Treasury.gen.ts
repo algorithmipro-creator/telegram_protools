@@ -120,6 +120,14 @@ class StackReader {
     readSlice(): c.Slice {
         return this.popCellLike().beginParse();
     }
+
+    readDictionary<K extends c.DictionaryKeyTypes, V>(keySerializer: c.DictionaryKey<K>, valueSerializer: c.DictionaryValue<V>): c.Dictionary<K, V> {
+        if (this.tuple[0].type === 'null') {
+            this.tuple.shift();
+            return c.Dictionary.empty<K, V>(keySerializer, valueSerializer);
+        }
+        return c.Dictionary.loadDirect<K, V>(keySerializer, valueSerializer, this.readCell());
+    }
 }
 
 // ————————————————————————————————————————————
@@ -155,7 +163,27 @@ export const ProposalStatus = {
 }
 
 /**
- > enum ProposalViewStatus { 5 variants }
+ > enum ProposalKind { 2 variants }
+ */
+export type ProposalKind = bigint
+
+export const ProposalKind = {
+    PayoutTon: 0n,
+    SetTreasuryConfig: 1n,
+
+    fromSlice(s: c.Slice): ProposalKind {
+        return s.loadUintBig(8);
+    },
+    store(self: ProposalKind, b: c.Builder): void {
+        b.storeUint(self, 8);
+    },
+    toCell(self: ProposalKind): c.Cell {
+        return makeCellFrom<ProposalKind>(self, ProposalKind.store);
+    }
+}
+
+/**
+ > enum ProposalViewStatus { 6 variants }
  */
 export type ProposalViewStatus = bigint
 
@@ -165,6 +193,7 @@ export const ProposalViewStatus = {
     Executed: 2n,
     Cancelled: 3n,
     Expired: 4n,
+    Stale: 5n,
 
     fromSlice(s: c.Slice): ProposalViewStatus {
         return s.loadUintBig(8);
@@ -178,107 +207,269 @@ export const ProposalViewStatus = {
 }
 
 /**
- > struct PayoutProposal {
- >     id: uint64
- >     creator: address
+ > struct (0x54525001) PayoutTonPayload {
  >     recipient: address
  >     amount: coins
- >     createdAt: uint32
- >     expiresAt: uint32
- >     status: ProposalStatus
- >     approvalCount: uint8
  > }
  */
-export interface PayoutProposal {
-    readonly $: 'PayoutProposal'
-    id: uint64
-    creator: c.Address
+export interface PayoutTonPayload {
+    readonly $: 'PayoutTonPayload'
     recipient: c.Address
     amount: coins
-    createdAt: uint32
-    expiresAt: uint32
-    status: ProposalStatus
-    approvalCount: uint8
 }
 
-export const PayoutProposal = {
+export const PayoutTonPayload = {
+    PREFIX: 0x54525001,
+
     create(args: {
-        id: uint64
-        creator: c.Address
         recipient: c.Address
         amount: coins
-        createdAt: uint32
-        expiresAt: uint32
-        status: ProposalStatus
-        approvalCount: uint8
-    }): PayoutProposal {
+    }): PayoutTonPayload {
         return {
-            $: 'PayoutProposal',
+            $: 'PayoutTonPayload',
             ...args
         }
     },
-    fromSlice(s: c.Slice): PayoutProposal {
+    fromSlice(s: c.Slice): PayoutTonPayload {
+        loadAndCheckPrefix32(s, 0x54525001, 'PayoutTonPayload');
         return {
-            $: 'PayoutProposal',
-            id: s.loadUintBig(64),
-            creator: s.loadAddress(),
+            $: 'PayoutTonPayload',
             recipient: s.loadAddress(),
             amount: s.loadCoins(),
-            createdAt: s.loadUintBig(32),
-            expiresAt: s.loadUintBig(32),
-            status: ProposalStatus.fromSlice(s),
-            approvalCount: s.loadUintBig(8),
         }
     },
-    store(self: PayoutProposal, b: c.Builder): void {
-        b.storeUint(self.id, 64);
-        b.storeAddress(self.creator);
+    store(self: PayoutTonPayload, b: c.Builder): void {
+        b.storeUint(0x54525001, 32);
         b.storeAddress(self.recipient);
         b.storeCoins(self.amount);
+    },
+    toCell(self: PayoutTonPayload): c.Cell {
+        return makeCellFrom<PayoutTonPayload>(self, PayoutTonPayload.store);
+    }
+}
+
+/**
+ > struct (0x54525002) SetTreasuryConfigPayload {
+ >     newOwnerCount: uint8
+ >     newPayoutThreshold: uint8
+ >     newConfigThreshold: uint8
+ >     newFeeReserve: coins
+ >     newOwners: map<address, uint8>
+ > }
+ */
+export interface SetTreasuryConfigPayload {
+    readonly $: 'SetTreasuryConfigPayload'
+    newOwnerCount: uint8
+    newPayoutThreshold: uint8
+    newConfigThreshold: uint8
+    newFeeReserve: coins
+    newOwners: c.Dictionary<c.Address, uint8>
+}
+
+export const SetTreasuryConfigPayload = {
+    PREFIX: 0x54525002,
+
+    create(args: {
+        newOwnerCount: uint8
+        newPayoutThreshold: uint8
+        newConfigThreshold: uint8
+        newFeeReserve: coins
+        newOwners: c.Dictionary<c.Address, uint8>
+    }): SetTreasuryConfigPayload {
+        return {
+            $: 'SetTreasuryConfigPayload',
+            ...args
+        }
+    },
+    fromSlice(s: c.Slice): SetTreasuryConfigPayload {
+        loadAndCheckPrefix32(s, 0x54525002, 'SetTreasuryConfigPayload');
+        return {
+            $: 'SetTreasuryConfigPayload',
+            newOwnerCount: s.loadUintBig(8),
+            newPayoutThreshold: s.loadUintBig(8),
+            newConfigThreshold: s.loadUintBig(8),
+            newFeeReserve: s.loadCoins(),
+            newOwners: c.Dictionary.load<c.Address, uint8>(c.Dictionary.Keys.Address(), c.Dictionary.Values.BigUint(8), s),
+        }
+    },
+    store(self: SetTreasuryConfigPayload, b: c.Builder): void {
+        b.storeUint(0x54525002, 32);
+        b.storeUint(self.newOwnerCount, 8);
+        b.storeUint(self.newPayoutThreshold, 8);
+        b.storeUint(self.newConfigThreshold, 8);
+        b.storeCoins(self.newFeeReserve);
+        b.storeDict<c.Address, uint8>(self.newOwners, c.Dictionary.Keys.Address(), c.Dictionary.Values.BigUint(8));
+    },
+    toCell(self: SetTreasuryConfigPayload): c.Cell {
+        return makeCellFrom<SetTreasuryConfigPayload>(self, SetTreasuryConfigPayload.store);
+    }
+}
+
+/**
+ > type ProposalPayload = PayoutTonPayload | SetTreasuryConfigPayload
+ */
+export type ProposalPayload =
+    | PayoutTonPayload
+    | SetTreasuryConfigPayload
+
+export const ProposalPayload = {
+    fromSlice(s: c.Slice): ProposalPayload {
+        return lookupPrefix(s, 0x54525001, 32) ? PayoutTonPayload.fromSlice(s) :
+            lookupPrefix(s, 0x54525002, 32) ? SetTreasuryConfigPayload.fromSlice(s) :
+            throwNonePrefixMatch('ProposalPayload');
+    },
+    store(self: ProposalPayload, b: c.Builder): void {
+        switch (self.$) {
+            case 'PayoutTonPayload':
+                PayoutTonPayload.store(self, b);
+                break;
+            case 'SetTreasuryConfigPayload':
+                SetTreasuryConfigPayload.store(self, b);
+                break;
+        }
+    },
+    toCell(self: ProposalPayload): c.Cell {
+        return makeCellFrom<ProposalPayload>(self, ProposalPayload.store);
+    }
+}
+
+/**
+ > struct Proposal {
+ >     id: uint64
+ >     kind: ProposalKind
+ >     creator: address
+ >     createdAt: uint32
+ >     expiresAt: uint32
+ >     configVersionAtCreation: uint32
+ >     status: ProposalStatus
+ >     approvalCount: uint8
+ >     payload: ProposalPayload
+ > }
+ */
+export interface Proposal {
+    readonly $: 'Proposal'
+    id: uint64
+    kind: ProposalKind
+    creator: c.Address
+    createdAt: uint32
+    expiresAt: uint32
+    configVersionAtCreation: uint32
+    status: ProposalStatus
+    approvalCount: uint8
+    payload: ProposalPayload
+}
+
+export const Proposal = {
+    create(args: {
+        id: uint64
+        kind: ProposalKind
+        creator: c.Address
+        createdAt: uint32
+        expiresAt: uint32
+        configVersionAtCreation: uint32
+        status: ProposalStatus
+        approvalCount: uint8
+        payload: ProposalPayload
+    }): Proposal {
+        return {
+            $: 'Proposal',
+            ...args
+        }
+    },
+    fromSlice(s: c.Slice): Proposal {
+        return {
+            $: 'Proposal',
+            id: s.loadUintBig(64),
+            kind: ProposalKind.fromSlice(s),
+            creator: s.loadAddress(),
+            createdAt: s.loadUintBig(32),
+            expiresAt: s.loadUintBig(32),
+            configVersionAtCreation: s.loadUintBig(32),
+            status: ProposalStatus.fromSlice(s),
+            approvalCount: s.loadUintBig(8),
+            payload: ProposalPayload.fromSlice(s),
+        }
+    },
+    store(self: Proposal, b: c.Builder): void {
+        b.storeUint(self.id, 64);
+        ProposalKind.store(self.kind, b);
+        b.storeAddress(self.creator);
         b.storeUint(self.createdAt, 32);
         b.storeUint(self.expiresAt, 32);
+        b.storeUint(self.configVersionAtCreation, 32);
         ProposalStatus.store(self.status, b);
         b.storeUint(self.approvalCount, 8);
+        ProposalPayload.store(self.payload, b);
     },
-    toCell(self: PayoutProposal): c.Cell {
-        return makeCellFrom<PayoutProposal>(self, PayoutProposal.store);
+    toCell(self: Proposal): c.Cell {
+        return makeCellFrom<Proposal>(self, Proposal.store);
     }
 }
 
 /**
  > struct ProposalView {
  >     id: uint64
+ >     kind: ProposalKind
  >     creator: address
- >     recipient: address
- >     amount: coins
  >     createdAt: uint32
  >     expiresAt: uint32
+ >     configVersionAtCreation: uint32
+ >     currentConfigVersion: uint32
  >     status: ProposalViewStatus
  >     approvalCount: uint8
+ >     requiredApprovalCount: uint8
+ >     payoutRecipient: address
+ >     payoutAmount: coins
+ >     recipient: address
+ >     amount: coins
+ >     newOwnerCount: uint8
+ >     newPayoutThreshold: uint8
+ >     newConfigThreshold: uint8
+ >     newFeeReserve: coins
  > }
  */
 export interface ProposalView {
     readonly $: 'ProposalView'
     id: uint64
+    kind: ProposalKind
     creator: c.Address
-    recipient: c.Address
-    amount: coins
     createdAt: uint32
     expiresAt: uint32
+    configVersionAtCreation: uint32
+    currentConfigVersion: uint32
     status: ProposalViewStatus
     approvalCount: uint8
+    requiredApprovalCount: uint8
+    payoutRecipient: c.Address
+    payoutAmount: coins
+    recipient: c.Address
+    amount: coins
+    newOwnerCount: uint8
+    newPayoutThreshold: uint8
+    newConfigThreshold: uint8
+    newFeeReserve: coins
 }
 
 export const ProposalView = {
     create(args: {
         id: uint64
+        kind: ProposalKind
         creator: c.Address
-        recipient: c.Address
-        amount: coins
         createdAt: uint32
         expiresAt: uint32
+        configVersionAtCreation: uint32
+        currentConfigVersion: uint32
         status: ProposalViewStatus
         approvalCount: uint8
+        requiredApprovalCount: uint8
+        payoutRecipient: c.Address
+        payoutAmount: coins
+        recipient: c.Address
+        amount: coins
+        newOwnerCount: uint8
+        newPayoutThreshold: uint8
+        newConfigThreshold: uint8
+        newFeeReserve: coins
     }): ProposalView {
         return {
             $: 'ProposalView',
@@ -289,24 +480,44 @@ export const ProposalView = {
         return {
             $: 'ProposalView',
             id: s.loadUintBig(64),
+            kind: ProposalKind.fromSlice(s),
             creator: s.loadAddress(),
-            recipient: s.loadAddress(),
-            amount: s.loadCoins(),
             createdAt: s.loadUintBig(32),
             expiresAt: s.loadUintBig(32),
+            configVersionAtCreation: s.loadUintBig(32),
+            currentConfigVersion: s.loadUintBig(32),
             status: ProposalViewStatus.fromSlice(s),
             approvalCount: s.loadUintBig(8),
+            requiredApprovalCount: s.loadUintBig(8),
+            payoutRecipient: s.loadAddress(),
+            payoutAmount: s.loadCoins(),
+            recipient: s.loadAddress(),
+            amount: s.loadCoins(),
+            newOwnerCount: s.loadUintBig(8),
+            newPayoutThreshold: s.loadUintBig(8),
+            newConfigThreshold: s.loadUintBig(8),
+            newFeeReserve: s.loadCoins(),
         }
     },
     store(self: ProposalView, b: c.Builder): void {
         b.storeUint(self.id, 64);
+        ProposalKind.store(self.kind, b);
         b.storeAddress(self.creator);
-        b.storeAddress(self.recipient);
-        b.storeCoins(self.amount);
         b.storeUint(self.createdAt, 32);
         b.storeUint(self.expiresAt, 32);
+        b.storeUint(self.configVersionAtCreation, 32);
+        b.storeUint(self.currentConfigVersion, 32);
         ProposalViewStatus.store(self.status, b);
         b.storeUint(self.approvalCount, 8);
+        b.storeUint(self.requiredApprovalCount, 8);
+        b.storeAddress(self.payoutRecipient);
+        b.storeCoins(self.payoutAmount);
+        b.storeAddress(self.recipient);
+        b.storeCoins(self.amount);
+        b.storeUint(self.newOwnerCount, 8);
+        b.storeUint(self.newPayoutThreshold, 8);
+        b.storeUint(self.newConfigThreshold, 8);
+        b.storeCoins(self.newFeeReserve);
     },
     toCell(self: ProposalView): c.Cell {
         return makeCellFrom<ProposalView>(self, ProposalView.store);
@@ -316,33 +527,42 @@ export const ProposalView = {
 /**
  > struct Storage {
  >     ownerCount: uint8
- >     threshold: uint8
+ >     payoutThreshold: uint8
+ >     configThreshold: uint8
+ >     configThresholdMutable: bool
+ >     configVersion: uint32
  >     proposalSeqno: uint64
  >     feeReserve: coins
  >     owners: map<address, uint8>
- >     proposals: map<uint64, Cell<PayoutProposal>>
+ >     proposals: map<uint64, Cell<Proposal>>
  >     approvals: map<uint256, uint8>
  > }
  */
 export interface Storage {
     readonly $: 'Storage'
     ownerCount: uint8
-    threshold: uint8
+    payoutThreshold: uint8
+    configThreshold: uint8
+    configThresholdMutable: boolean
+    configVersion: uint32
     proposalSeqno: uint64
     feeReserve: coins
     owners: c.Dictionary<c.Address, uint8>
-    proposals: c.Dictionary<uint64, CellRef<PayoutProposal>>
+    proposals: c.Dictionary<uint64, CellRef<Proposal>>
     approvals: c.Dictionary<uint256, uint8>
 }
 
 export const Storage = {
     create(args: {
         ownerCount: uint8
-        threshold: uint8
+        payoutThreshold: uint8
+        configThreshold: uint8
+        configThresholdMutable: boolean
+        configVersion: uint32
         proposalSeqno: uint64
         feeReserve: coins
         owners: c.Dictionary<c.Address, uint8>
-        proposals: c.Dictionary<uint64, CellRef<PayoutProposal>>
+        proposals: c.Dictionary<uint64, CellRef<Proposal>>
         approvals: c.Dictionary<uint256, uint8>
     }): Storage {
         return {
@@ -354,26 +574,32 @@ export const Storage = {
         return {
             $: 'Storage',
             ownerCount: s.loadUintBig(8),
-            threshold: s.loadUintBig(8),
+            payoutThreshold: s.loadUintBig(8),
+            configThreshold: s.loadUintBig(8),
+            configThresholdMutable: s.loadBoolean(),
+            configVersion: s.loadUintBig(32),
             proposalSeqno: s.loadUintBig(64),
             feeReserve: s.loadCoins(),
             owners: c.Dictionary.load<c.Address, uint8>(c.Dictionary.Keys.Address(), c.Dictionary.Values.BigUint(8), s),
-            proposals: c.Dictionary.load<uint64, CellRef<PayoutProposal>>(c.Dictionary.Keys.BigUint(64), createDictionaryValue<CellRef<PayoutProposal>>(
-                (s) => loadCellRef<PayoutProposal>(s, PayoutProposal.fromSlice),
-                (v,b) => storeCellRef<PayoutProposal>(v, b, PayoutProposal.store)
+            proposals: c.Dictionary.load<uint64, CellRef<Proposal>>(c.Dictionary.Keys.BigUint(64), createDictionaryValue<CellRef<Proposal>>(
+                (s) => loadCellRef<Proposal>(s, Proposal.fromSlice),
+                (v,b) => storeCellRef<Proposal>(v, b, Proposal.store)
             ), s),
             approvals: c.Dictionary.load<uint256, uint8>(c.Dictionary.Keys.BigUint(256), c.Dictionary.Values.BigUint(8), s),
         }
     },
     store(self: Storage, b: c.Builder): void {
         b.storeUint(self.ownerCount, 8);
-        b.storeUint(self.threshold, 8);
+        b.storeUint(self.payoutThreshold, 8);
+        b.storeUint(self.configThreshold, 8);
+        b.storeBit(self.configThresholdMutable);
+        b.storeUint(self.configVersion, 32);
         b.storeUint(self.proposalSeqno, 64);
         b.storeCoins(self.feeReserve);
         b.storeDict<c.Address, uint8>(self.owners, c.Dictionary.Keys.Address(), c.Dictionary.Values.BigUint(8));
-        b.storeDict<uint64, CellRef<PayoutProposal>>(self.proposals, c.Dictionary.Keys.BigUint(64), createDictionaryValue<CellRef<PayoutProposal>>(
-            (s) => loadCellRef<PayoutProposal>(s, PayoutProposal.fromSlice),
-            (v,b) => storeCellRef<PayoutProposal>(v, b, PayoutProposal.store)
+        b.storeDict<uint64, CellRef<Proposal>>(self.proposals, c.Dictionary.Keys.BigUint(64), createDictionaryValue<CellRef<Proposal>>(
+            (s) => loadCellRef<Proposal>(s, Proposal.fromSlice),
+            (v,b) => storeCellRef<Proposal>(v, b, Proposal.store)
         ));
         b.storeDict<uint256, uint8>(self.approvals, c.Dictionary.Keys.BigUint(256), c.Dictionary.Values.BigUint(8));
     },
@@ -540,6 +766,68 @@ export const CancelProposal = {
     }
 }
 
+/**
+ > struct (0x54524605) CreateConfigProposal {
+ >     newOwnerCount: uint8
+ >     newPayoutThreshold: uint8
+ >     newConfigThreshold: uint8
+ >     newFeeReserve: coins
+ >     newOwners: map<address, uint8>
+ >     expiresAt: uint32
+ > }
+ */
+export interface CreateConfigProposal {
+    readonly $: 'CreateConfigProposal'
+    newOwnerCount: uint8
+    newPayoutThreshold: uint8
+    newConfigThreshold: uint8
+    newFeeReserve: coins
+    newOwners: c.Dictionary<c.Address, uint8>
+    expiresAt: uint32
+}
+
+export const CreateConfigProposal = {
+    PREFIX: 0x54524605,
+
+    create(args: {
+        newOwnerCount: uint8
+        newPayoutThreshold: uint8
+        newConfigThreshold: uint8
+        newFeeReserve: coins
+        newOwners: c.Dictionary<c.Address, uint8>
+        expiresAt: uint32
+    }): CreateConfigProposal {
+        return {
+            $: 'CreateConfigProposal',
+            ...args
+        }
+    },
+    fromSlice(s: c.Slice): CreateConfigProposal {
+        loadAndCheckPrefix32(s, 0x54524605, 'CreateConfigProposal');
+        return {
+            $: 'CreateConfigProposal',
+            newOwnerCount: s.loadUintBig(8),
+            newPayoutThreshold: s.loadUintBig(8),
+            newConfigThreshold: s.loadUintBig(8),
+            newFeeReserve: s.loadCoins(),
+            newOwners: c.Dictionary.load<c.Address, uint8>(c.Dictionary.Keys.Address(), c.Dictionary.Values.BigUint(8), s),
+            expiresAt: s.loadUintBig(32),
+        }
+    },
+    store(self: CreateConfigProposal, b: c.Builder): void {
+        b.storeUint(0x54524605, 32);
+        b.storeUint(self.newOwnerCount, 8);
+        b.storeUint(self.newPayoutThreshold, 8);
+        b.storeUint(self.newConfigThreshold, 8);
+        b.storeCoins(self.newFeeReserve);
+        b.storeDict<c.Address, uint8>(self.newOwners, c.Dictionary.Keys.Address(), c.Dictionary.Values.BigUint(8));
+        b.storeUint(self.expiresAt, 32);
+    },
+    toCell(self: CreateConfigProposal): c.Cell {
+        return makeCellFrom<CreateConfigProposal>(self, CreateConfigProposal.store);
+    }
+}
+
 // ————————————————————————————————————————————
 //    class Treasury
 //
@@ -579,14 +867,13 @@ function calculateDeployedAddress(code: c.Cell, data: c.Cell, options: DeployedA
 }
 
 export class Treasury implements c.Contract {
-    static CodeCell = c.Cell.fromBase64('te6ccgECHQEABH0AART/APSkE/S88sgLAQIBYgIDAgLOBAUCASAREgIBIAYHAEFGxENCHAAZNfBHLgAcACk18Dc+D4I1i+klt04LuRceBwgEUT4kZEw4CDXLCKikjAM4wLXLCKikjAU4wLXLCKikjAc4wLXLCKikjAkgCAkKCwB3BAkXwQiwgHy4IIiwQvy4IJwIYEBC/SCb6UykQGcAaRREoEBC/R0b6Uy6DAxIrry4IMgwgDy4IS+8uCEgAf4x7UTQ0wfTB9M/+gD0BPQE9AVUdlRUdlQm8AH4l4IK+vCAvvLgkPiSI4EBC/QKb6Ex8uCA+CMI+kj6ANcLH/goI8cF8tCFIcIA8uCGUwq88uCHKoIIJ40AoCG+8uCH+JIoyMs/+lIT+lIB+gIZyx8Yyx/PiAAGyVJCgED0F/iSDAH+Me1E0NMH0wfTP/oA9AT0BPQFVHZUVHZUJvAB+JeCCvrwgL7y4JD4kiOBAQv0Cm+hMfLggAfXCz9TAYBA9A/y4IjQ0z/6SPpI+gDTH9Mf0wchwgLyRdMH0SHy0In4IyO+8tCK+JIpyMs/+lL5FiBWEYMH9A5voTHy0IvIz4QGAg0B/jHtRNDTB9MH0z/6APQE9AQg9AVUZ3BUZ3BUZ3DwAfiXggr68IC+8uCQ+JIjgQEL9ApvoTHy4IAH1ws/UwGAQPQP8uCI0NM/+kj6SPoA0x/TH9MHIcIC8kXTB9EB8tCJ+CMivvLQilMMvvLgjPgnbxD4l6FTS6C+8uCOBsjLPxUOATbjAjDHAPLgge1E0NMH0wfTP/oA9AT0BPQF8AEPAFgkyMs/+lL5FsjPhAZAGIMH9EMDpAXIywcUywcUyz9QA/oC9AAS9AD0AMntVAByERGDB/RDD6QHyMs/FvpSFPpSWPoCyx/LH8sHywfJAoBA9BcFyMsHFMsHEss/AfoC9AD0APQAye1UAIb6UlIw+lIi+gLLHxPLH8+EBhPLB8lANIBA9BcHyMsHFssHFMs/WPoC9AAT9AATzsntVMjPhQj6UgH6AnDPC2rJcfsAAf4x7UTQ0wfTB9M/+gD0BPQEIPQFVGdwVGdwVGdw8AH4l4IK+vCAvvLgkPiSI4EBC/QKb6Ex8uCAB9cLP1MBgED0D/LgiNDTP/pI+kj6ANMf0x/TByHCAvJF0wfRAfLQifgjIr7y0Ir4kibHBfLgj1MMufLgjQbIyz8V+lIT+lIBEABM+gLLH8sfz4QKywfJAoBA9BcFyMsHFMsHEss/AfoC9AD0AM7J7VQCAVgTFAIBIBcYAgFIFRYAK7cbHaiaGmnmP0AGPoCwICF+gU30JjAAQ65S9qJoaaeY/QAY+gD6APoCgWRln/0pfIsAwYP6BzfQmMAAi60jdqJoaYOY6YPpn5j9ABj6APoCiUAgegf5cERoaZ/9JH0kfQBpj+mP6YOQ4QF5IumD6JOqI5gTqiOYE6ojmCkH+AEqg0AAF7prftRNDTBzHXCweAIBIBkaAgFmGxwAEbTLXaiaGuFg8AAWqf/tRNDTDzHXCz8AFqm/7UTQ008x+gAw');
+    static CodeCell = c.Cell.fromBase64('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');
 
     static Errors = {
         'Errors.NotOwner': 128,
         'Errors.InvalidMessage': 129,
         'Errors.InvalidOwnerCount': 130,
         'Errors.DuplicateOwner': 131,
-        'Errors.InvalidThreshold': 132,
         'Errors.InvalidRecipient': 133,
         'Errors.InvalidAmount': 134,
         'Errors.InvalidExpiry': 135,
@@ -599,6 +886,12 @@ export class Treasury implements c.Contract {
         'Errors.InsufficientBalance': 142,
         'Errors.NotCreator': 143,
         'Errors.InsufficientMessageValue': 144,
+        'Errors.InvalidPayoutThreshold': 145,
+        'Errors.InvalidConfigThreshold': 146,
+        'Errors.ConfigThresholdLocked': 147,
+        'Errors.InvalidFeeReserve': 148,
+        'Errors.ProposalStale': 149,
+        'Errors.InvalidProposalKind': 150,
     }
 
     readonly address: c.Address
@@ -615,11 +908,14 @@ export class Treasury implements c.Contract {
 
     static fromStorage(emptyStorage: {
         ownerCount: uint8
-        threshold: uint8
+        payoutThreshold: uint8
+        configThreshold: uint8
+        configThresholdMutable: boolean
+        configVersion: uint32
         proposalSeqno: uint64
         feeReserve: coins
         owners: c.Dictionary<c.Address, uint8>
-        proposals: c.Dictionary<uint64, CellRef<PayoutProposal>>
+        proposals: c.Dictionary<uint64, CellRef<Proposal>>
         approvals: c.Dictionary<uint256, uint8>
     }, deployedOptions?: DeployedAddrOptions) {
         const initialState = {
@@ -654,6 +950,17 @@ export class Treasury implements c.Contract {
         proposalId: uint64
     }) {
         return CancelProposal.toCell(CancelProposal.create(body));
+    }
+
+    static createCellOfCreateConfigProposal(body: {
+        newOwnerCount: uint8
+        newPayoutThreshold: uint8
+        newConfigThreshold: uint8
+        newFeeReserve: coins
+        newOwners: c.Dictionary<c.Address, uint8>
+        expiresAt: uint32
+    }) {
+        return CreateConfigProposal.toCell(CreateConfigProposal.create(body));
     }
 
     async sendDeploy(provider: ContractProvider, via: Sender, msgValue: coins, extraOptions?: ExtraSendOptions) {
@@ -706,13 +1013,43 @@ export class Treasury implements c.Contract {
         });
     }
 
+    async sendCreateConfigProposal(provider: ContractProvider, via: Sender, msgValue: coins, body: {
+        newOwnerCount: uint8
+        newPayoutThreshold: uint8
+        newConfigThreshold: uint8
+        newFeeReserve: coins
+        newOwners: c.Dictionary<c.Address, uint8>
+        expiresAt: uint32
+    }, extraOptions?: ExtraSendOptions) {
+        return provider.internal(via, {
+            value: msgValue,
+            body: CreateConfigProposal.toCell(CreateConfigProposal.create(body)),
+            ...extraOptions
+        });
+    }
+
     async getOwnerCount(provider: ContractProvider): Promise<uint8> {
         const r = StackReader.fromGetMethod(1, await provider.get('owner_count', []));
         return r.readBigInt();
     }
 
-    async getThreshold(provider: ContractProvider): Promise<uint8> {
-        const r = StackReader.fromGetMethod(1, await provider.get('threshold', []));
+    async getPayoutThreshold(provider: ContractProvider): Promise<uint8> {
+        const r = StackReader.fromGetMethod(1, await provider.get('payout_threshold', []));
+        return r.readBigInt();
+    }
+
+    async getConfigThreshold(provider: ContractProvider): Promise<uint8> {
+        const r = StackReader.fromGetMethod(1, await provider.get('config_threshold', []));
+        return r.readBigInt();
+    }
+
+    async getConfigThresholdMutable(provider: ContractProvider): Promise<boolean> {
+        const r = StackReader.fromGetMethod(1, await provider.get('config_threshold_mutable', []));
+        return r.readBoolean();
+    }
+
+    async getConfigVersion(provider: ContractProvider): Promise<uint32> {
+        const r = StackReader.fromGetMethod(1, await provider.get('config_version', []));
         return r.readBigInt();
     }
 
@@ -736,20 +1073,51 @@ export class Treasury implements c.Contract {
     }
 
     async getProposal(provider: ContractProvider, proposalId: uint64): Promise<ProposalView> {
-        const r = StackReader.fromGetMethod(8, await provider.get('proposal', [
+        const r = StackReader.fromGetMethod(18, await provider.get('proposal', [
             { type: 'int', value: proposalId },
         ]));
         return ({
             $: 'ProposalView',
             id: r.readBigInt(),
+            kind: r.readBigInt(),
             creator: r.readSlice().loadAddress(),
-            recipient: r.readSlice().loadAddress(),
-            amount: r.readBigInt(),
             createdAt: r.readBigInt(),
             expiresAt: r.readBigInt(),
+            configVersionAtCreation: r.readBigInt(),
+            currentConfigVersion: r.readBigInt(),
             status: r.readBigInt(),
             approvalCount: r.readBigInt(),
+            requiredApprovalCount: r.readBigInt(),
+            payoutRecipient: r.readSlice().loadAddress(),
+            payoutAmount: r.readBigInt(),
+            recipient: r.readSlice().loadAddress(),
+            amount: r.readBigInt(),
+            newOwnerCount: r.readBigInt(),
+            newPayoutThreshold: r.readBigInt(),
+            newConfigThreshold: r.readBigInt(),
+            newFeeReserve: r.readBigInt(),
         });
+    }
+
+    async getProposalKind(provider: ContractProvider, proposalId: uint64): Promise<ProposalKind> {
+        const r = StackReader.fromGetMethod(1, await provider.get('proposal_kind', [
+            { type: 'int', value: proposalId },
+        ]));
+        return r.readBigInt();
+    }
+
+    async getProposalRequiredThreshold(provider: ContractProvider, proposalId: uint64): Promise<uint8> {
+        const r = StackReader.fromGetMethod(1, await provider.get('proposal_required_threshold', [
+            { type: 'int', value: proposalId },
+        ]));
+        return r.readBigInt();
+    }
+
+    async getProposalConfigOwners(provider: ContractProvider, proposalId: uint64): Promise<c.Dictionary<c.Address, uint8>> {
+        const r = StackReader.fromGetMethod(1, await provider.get('proposal_config_owners', [
+            { type: 'int', value: proposalId },
+        ]));
+        return r.readDictionary<c.Address, uint8>(c.Dictionary.Keys.Address(), c.Dictionary.Values.BigUint(8));
     }
 
     async getHasApproval(provider: ContractProvider, proposalId: uint64, owner: c.Address): Promise<boolean> {

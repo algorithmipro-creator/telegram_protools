@@ -104,6 +104,33 @@ fun Treasury.sendCancelProposal(
     return net.send(from, genericMsg);
 }
 
+fun Treasury.sendCreateConfigProposal(
+    self,
+    from: address,
+    newOwnerCount: uint8,
+    newPayoutThreshold: uint8,
+    newConfigThreshold: uint8,
+    newFeeReserve: coins,
+    newOwners: map<address, uint8>,
+    expiresAt: uint32,
+    config: SendParams = {},
+): SendResultList {
+    val genericMsg = createMessage({
+        bounce: config.bounce,
+        value: config.value,
+        dest: self.address,
+        body: CreateConfigProposal {
+            newOwnerCount,
+            newPayoutThreshold,
+            newConfigThreshold,
+            newFeeReserve,
+            newOwners,
+            expiresAt,
+        },
+    });
+    return net.send(from, genericMsg);
+}
+
 /// Send message to the contract with a custom body cell
 fun Treasury.sendAny(self, from: address, body: cell, config: SendParams = {}): SendResultList {
     val genericMsg = createMessage({
@@ -119,8 +146,20 @@ fun Treasury.ownerCount(self): uint8 {
     return net.runGetMethod(self.address, "owner_count");
 }
 
-fun Treasury.threshold(self): uint8 {
-    return net.runGetMethod(self.address, "threshold");
+fun Treasury.payoutThreshold(self): uint8 {
+    return net.runGetMethod(self.address, "payout_threshold");
+}
+
+fun Treasury.configThreshold(self): uint8 {
+    return net.runGetMethod(self.address, "config_threshold");
+}
+
+fun Treasury.configThresholdMutable(self): bool {
+    return net.runGetMethod(self.address, "config_threshold_mutable");
+}
+
+fun Treasury.configVersion(self): uint32 {
+    return net.runGetMethod(self.address, "config_version");
 }
 
 fun Treasury.proposalSeqno(self): uint64 {
@@ -137,6 +176,18 @@ fun Treasury.isOwner(self, owner: address): bool {
 
 fun Treasury.proposal(self, proposalId: uint64): ProposalView {
     return net.runGetMethod(self.address, "proposal", [proposalId]);
+}
+
+fun Treasury.proposalKind(self, proposalId: uint64): ProposalKind {
+    return net.runGetMethod(self.address, "proposal_kind", [proposalId]);
+}
+
+fun Treasury.proposalRequiredThreshold(self, proposalId: uint64): uint8 {
+    return net.runGetMethod(self.address, "proposal_required_threshold", [proposalId]);
+}
+
+fun Treasury.proposalConfigOwners(self, proposalId: uint64): map<address, uint8> {
+    return net.runGetMethod(self.address, "proposal_config_owners", [proposalId]);
 }
 
 fun Treasury.hasApproval(self, proposalId: uint64, owner: address): bool {

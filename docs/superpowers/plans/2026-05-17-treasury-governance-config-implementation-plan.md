@@ -288,12 +288,15 @@ Expected:
 
 ---
 
-### Task 3: Implement Governance Storage Primitives
+### Task 3: Implement Governance Config Storage Primitives
 
 **Files:**
 - Modify `contracts/types.tolk`
 - Modify `contracts/Treasury.tolk`
 - Modify `tests/contract.test.tolk`
+- Modify `scripts/deploy.tolk`
+- Regenerate `wrappers/Treasury.gen.tolk`
+- Regenerate `wrappers-ts/Treasury.gen.ts`
 
 - [ ] **Step 1: Add constants and errors**
 
@@ -329,7 +332,156 @@ enum Errors {
 }
 ```
 
-- [ ] **Step 2: Add proposal kind and stale status**
+- [ ] **Step 2: Replace storage threshold fields**
+
+Replace `threshold: uint8` with:
+
+```tolk
+payoutThreshold: uint8
+configThreshold: uint8
+configThresholdMutable: bool
+configVersion: uint32
+```
+
+Keep:
+
+```tolk
+proposalSeqno: uint64
+feeReserve: coins
+owners: map<address, uint8>
+proposals: map<uint64, Cell<PayoutProposal>>
+approvals: map<uint256, uint8>
+```
+
+- [ ] **Step 3: Add config validation helpers**
+
+Replace `Storage.assertValidConfig` with validation of the current config:
+
+```tolk
+fun Storage.assertValidConfig(self) {
+    assert (self.ownerCount >= MIN_OWNER_COUNT) throw Errors.InvalidOwnerCount;
+    assert (self.ownerCount <= MAX_OWNER_COUNT) throw Errors.InvalidOwnerCount;
+    assert (self.ownerMapCount() == self.ownerCount) throw Errors.DuplicateOwner;
+    assert (self.payoutThreshold > 0) throw Errors.InvalidPayoutThreshold;
+    assert (self.configThreshold > 0) throw Errors.InvalidConfigThreshold;
+    assert (self.payoutThreshold <= self.configThreshold) throw Errors.InvalidConfigThreshold;
+    assert (self.configThreshold <= self.ownerCount) throw Errors.InvalidConfigThreshold;
+    assert (self.feeReserve >= MIN_FEE_RESERVE) throw Errors.InvalidFeeReserve;
+}
+```
+
+- [ ] **Step 4: Update existing payout-core references**
+
+Keep the existing `PayoutProposal` struct and payout proposal storage unchanged in this task. Update current payout logic to use the new payout threshold field:
+
+```tolk
+storage.threshold -> storage.payoutThreshold
+```
+
+Do not add `ProposalKind`, typed proposal payloads, stale behavior, or config proposal messages in this task. Those belong to Task 4 and later tasks.
+
+- [ ] **Step 5: Update setup helpers**
+
+In `tests/contract.test.tolk`, update `setupTreasury()` to use:
+
+```tolk
+ownerCount: 2,
+payoutThreshold: 2,
+configThreshold: 2,
+configThresholdMutable: false,
+configVersion: 0,
+proposalSeqno: 0,
+feeReserve: DEFAULT_FEE_RESERVE,
+owners,
+proposals: [],
+approvals: [],
+```
+
+Update all existing `Storage { threshold: ... }` test literals to the new fields.
+
+- [ ] **Step 6: Update deploy storage literal**
+
+In `scripts/deploy.tolk`, replace the old `threshold` initialization with the new config fields:
+
+```tolk
+payoutThreshold: 2,
+configThreshold: 2,
+configThresholdMutable: false,
+configVersion: 0,
+```
+
+- [ ] **Step 7: Add new getters**
+
+In `contracts/Treasury.tolk`, replace `threshold()` getter with:
+
+```tolk
+get fun payout_threshold(): uint8 {
+    val storage = lazy Storage.load();
+    return storage.payoutThreshold;
+}
+
+get fun config_threshold(): uint8 {
+    val storage = lazy Storage.load();
+    return storage.configThreshold;
+}
+
+get fun config_threshold_mutable(): bool {
+    val storage = lazy Storage.load();
+    return storage.configThresholdMutable;
+}
+
+get fun config_version(): uint32 {
+    val storage = lazy Storage.load();
+    return storage.configVersion;
+}
+```
+
+- [ ] **Step 8: Regenerate wrappers**
+
+Run wrapper generation through Acton tooling:
+
+```powershell
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton wrapper Treasury"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton wrapper Treasury --ts --output-dir wrappers-ts"
+```
+
+Do not keep test-local getter shims after generated wrappers expose the new getters.
+
+- [ ] **Step 9: Run validation tests**
+
+Run:
+
+```powershell
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test --filter 'deploy exposes|invalid treasury config|owner count|zero threshold|payout threshold above|config threshold above|mutable true deploy'"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton script scripts/deploy.tolk"
+```
+
+Expected:
+
+- selected tests, full tests, and deploy emulation pass.
+
+- [ ] **Step 10: Commit**
+
+Run:
+
+```powershell
+git add contracts/types.tolk contracts/Treasury.tolk tests/contract.test.tolk scripts/deploy.tolk wrappers/Treasury.gen.tolk wrappers-ts/Treasury.gen.ts
+git commit -m "feat: add Treasury governance config primitives"
+```
+
+---
+
+### Task 4: Migrate Payout Proposals To Typed Proposal Envelope
+
+**Files:**
+- Modify `contracts/types.tolk`
+- Modify `contracts/Treasury.tolk`
+- Modify `tests/contract.test.tolk`
+- Regenerate `wrappers/Treasury.gen.tolk`
+- Regenerate `wrappers-ts/Treasury.gen.ts`
+
+- [ ] **Step 1: Add proposal kind and stale view status**
 
 In `contracts/types.tolk`, extend enums:
 
@@ -349,28 +501,7 @@ enum ProposalViewStatus: uint8 {
 }
 ```
 
-- [ ] **Step 3: Replace storage threshold fields**
-
-Replace `threshold: uint8` with:
-
-```tolk
-payoutThreshold: uint8
-configThreshold: uint8
-configThresholdMutable: bool
-configVersion: uint32
-```
-
-Keep:
-
-```tolk
-proposalSeqno: uint64
-feeReserve: coins
-owners: map<address, uint8>
-proposals: map<uint64, Cell<Proposal>>
-approvals: map<uint256, uint8>
-```
-
-- [ ] **Step 4: Add payload and proposal structs**
+- [ ] **Step 2: Add typed proposal envelope structs**
 
 Replace `PayoutProposal` with a typed proposal envelope:
 
@@ -403,24 +534,19 @@ struct Proposal {
 }
 ```
 
-- [ ] **Step 5: Add config validation helpers**
-
-Replace `Storage.assertValidConfig` with validation of the current config:
+Change storage from:
 
 ```tolk
-fun Storage.assertValidConfig(self) {
-    assert (self.ownerCount >= MIN_OWNER_COUNT) throw Errors.InvalidOwnerCount;
-    assert (self.ownerCount <= MAX_OWNER_COUNT) throw Errors.InvalidOwnerCount;
-    assert (self.ownerMapCount() == self.ownerCount) throw Errors.DuplicateOwner;
-    assert (self.payoutThreshold > 0) throw Errors.InvalidPayoutThreshold;
-    assert (self.configThreshold > 0) throw Errors.InvalidConfigThreshold;
-    assert (self.payoutThreshold <= self.configThreshold) throw Errors.InvalidConfigThreshold;
-    assert (self.configThreshold <= self.ownerCount) throw Errors.InvalidConfigThreshold;
-    assert (self.feeReserve >= MIN_FEE_RESERVE) throw Errors.InvalidFeeReserve;
-}
+proposals: map<uint64, Cell<PayoutProposal>>
 ```
 
-- [ ] **Step 6: Add threshold and stale helpers**
+to:
+
+```tolk
+proposals: map<uint64, Cell<Proposal>>
+```
+
+- [ ] **Step 3: Add threshold helper**
 
 Add:
 
@@ -434,92 +560,9 @@ fun Storage.requiredThreshold(self, kind: ProposalKind): uint8 {
     }
     throw Errors.InvalidProposalKind;
 }
-
-fun Proposal.isExpired(self): bool {
-    return blockchain.now() >= self.expiresAt;
-}
-
-fun Proposal.isStale(self, currentConfigVersion: uint32): bool {
-    return self.configVersionAtCreation != currentConfigVersion;
-}
 ```
 
-- [ ] **Step 7: Update setup helpers**
-
-In `tests/contract.test.tolk`, update `setupTreasury()` to use:
-
-```tolk
-ownerCount: 2,
-payoutThreshold: 2,
-configThreshold: 2,
-configThresholdMutable: false,
-configVersion: 0,
-proposalSeqno: 0,
-feeReserve: DEFAULT_FEE_RESERVE,
-owners,
-proposals: [],
-approvals: [],
-```
-
-Update all existing `Storage { threshold: ... }` test literals to the new fields.
-
-- [ ] **Step 8: Add new getters**
-
-In `contracts/Treasury.tolk`, replace `threshold()` getter with:
-
-```tolk
-get fun payout_threshold(): uint8 {
-    val storage = lazy Storage.load();
-    return storage.payoutThreshold;
-}
-
-get fun config_threshold(): uint8 {
-    val storage = lazy Storage.load();
-    return storage.configThreshold;
-}
-
-get fun config_threshold_mutable(): bool {
-    val storage = lazy Storage.load();
-    return storage.configThresholdMutable;
-}
-
-get fun config_version(): uint32 {
-    val storage = lazy Storage.load();
-    return storage.configVersion;
-}
-```
-
-- [ ] **Step 9: Run validation tests**
-
-Run:
-
-```powershell
-wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test --filter 'deploy exposes|invalid treasury config|owner count|zero threshold|payout threshold above|config threshold above|mutable true deploy'"
-```
-
-Expected:
-
-- selected tests pass.
-
-- [ ] **Step 10: Commit**
-
-Run:
-
-```powershell
-git add contracts/types.tolk contracts/Treasury.tolk tests/contract.test.tolk
-git commit -m "feat: add Treasury governance config primitives"
-```
-
----
-
-### Task 4: Migrate Payout Proposals To Typed Proposal Envelope
-
-**Files:**
-- Modify `contracts/types.tolk`
-- Modify `contracts/Treasury.tolk`
-- Modify `tests/contract.test.tolk`
-
-- [ ] **Step 1: Update payout view tests**
+- [ ] **Step 4: Update payout view tests**
 
 Update existing payout proposal assertions to read the typed proposal view:
 
@@ -535,7 +578,7 @@ expect(proposal.payoutRecipient).toEqual(outsider.address);
 expect(proposal.payoutAmount).toEqual(ton("0.20"));
 ```
 
-- [ ] **Step 2: Update ProposalView**
+- [ ] **Step 5: Update ProposalView**
 
 In `contracts/types.tolk`, replace `ProposalView` with a typed view containing neutral fields and type-specific preview fields:
 
@@ -562,7 +605,7 @@ struct ProposalView {
 
 Use zero address and zero values for fields that do not apply to a proposal kind.
 
-- [ ] **Step 3: Add view status priority**
+- [ ] **Step 6: Add view status priority**
 
 Implement view-status priority:
 
@@ -587,7 +630,7 @@ fun Proposal.viewStatus(self, currentConfigVersion: uint32, requiredThreshold: u
 }
 ```
 
-- [ ] **Step 4: Update CreatePayoutProposal handler**
+- [ ] **Step 7: Update CreatePayoutProposal handler**
 
 In `contracts/Treasury.tolk`, create a generic `Proposal` with:
 
@@ -602,7 +645,7 @@ payload: PayoutTonPayload {
 
 Keep creator auto-approval and proposal seqno behavior unchanged.
 
-- [ ] **Step 5: Update approve/execute/cancel for typed proposal**
+- [ ] **Step 8: Update approve/execute/cancel for typed proposal**
 
 Update common checks to use:
 
@@ -627,24 +670,36 @@ assert (
 ) throw Errors.InsufficientBalance;
 ```
 
-- [ ] **Step 6: Run payout compatibility tests**
+- [ ] **Step 9: Regenerate wrappers**
+
+Run wrapper generation through Acton tooling:
+
+```powershell
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton wrapper Treasury"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton wrapper Treasury --ts --output-dir wrappers-ts"
+```
+
+- [ ] **Step 10: Run payout compatibility tests**
 
 Run:
 
 ```powershell
 wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test --filter 'owner creates payout|second owner approves|execute after threshold|exact reserve|draining|action phase|terminal|insufficient inbound|expiry|self recipient'"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton check"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton fmt --check"
 ```
 
 Expected:
 
-- selected payout tests pass under the typed proposal envelope.
+- selected payout tests, full tests, contract checks, and formatting pass under the typed proposal envelope.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 11: Commit**
 
 Run:
 
 ```powershell
-git add contracts/types.tolk contracts/Treasury.tolk tests/contract.test.tolk
+git add contracts/types.tolk contracts/Treasury.tolk tests/contract.test.tolk wrappers/Treasury.gen.tolk wrappers-ts/Treasury.gen.ts
 git commit -m "feat: migrate payouts to typed proposals"
 ```
 
@@ -656,6 +711,8 @@ git commit -m "feat: migrate payouts to typed proposals"
 - Modify `contracts/types.tolk`
 - Modify `contracts/Treasury.tolk`
 - Modify `tests/contract.test.tolk`
+- Regenerate `wrappers/Treasury.gen.tolk`
+- Regenerate `wrappers-ts/Treasury.gen.ts`
 
 - [ ] **Step 1: Add message type**
 
@@ -716,6 +773,10 @@ get fun `test owner creates config proposal with creator auto approval`() {
     expect(proposal.approvalCount).toEqual(1);
     expect(proposal.requiredApprovalCount).toEqual(contract.configThreshold());
     expect(proposal.newOwnerCount).toEqual(3);
+    expect(contract.ownerCount()).toEqual(2);
+    expect(contract.payoutThreshold()).toEqual(2);
+    expect(contract.configThreshold()).toEqual(2);
+    expect(contract.configVersion()).toEqual(0);
 }
 ```
 
@@ -740,6 +801,7 @@ non owner cannot create config proposal
 config proposal rejects duplicate owners
 config proposal rejects owner count below minimum
 config proposal rejects owner count above maximum
+config proposal rejects config threshold zero
 config proposal rejects payout threshold above config threshold
 config proposal rejects config threshold above new owner count
 config proposal rejects fee reserve below minimum
@@ -849,22 +911,32 @@ CreateConfigProposal => {
 
 - [ ] **Step 7: Run config creation tests**
 
+Regenerate wrappers before running tests:
+
+```powershell
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton wrapper Treasury"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton wrapper Treasury --ts --output-dir wrappers-ts"
+```
+
 Run:
 
 ```powershell
 wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test --filter 'config proposal|threshold mutable|owner count'"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton check"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton fmt --check"
 ```
 
 Expected:
 
-- config creation and validation tests pass.
+- config creation and validation tests, full tests, contract checks, and formatting pass.
 
 - [ ] **Step 8: Commit**
 
 Run:
 
 ```powershell
-git add contracts/types.tolk contracts/Treasury.tolk tests/contract.test.tolk
+git add contracts/types.tolk contracts/Treasury.tolk tests/contract.test.tolk wrappers/Treasury.gen.tolk wrappers-ts/Treasury.gen.ts
 git commit -m "feat: add Treasury config proposals"
 ```
 
@@ -885,6 +957,7 @@ config proposal requires configThreshold approvals
 config proposal cannot execute with only payoutThreshold approvals
 creator auto approval counts for config proposal
 execution of config threshold decrease still requires old current configThreshold
+config proposal execution does not require proposed future configThreshold
 ```
 
 Use a helper that deploys 3 owners:
@@ -931,8 +1004,12 @@ execute SetTreasuryConfig updates feeReserve
 execute SetTreasuryConfig increments configVersion
 execute SetTreasuryConfig keeps configThreshold unchanged when locked
 execute SetTreasuryConfig updates configThreshold when mutable
+execute SetTreasuryConfig marks proposal Executed
+executed config proposal cannot be executed twice
 removed owner cannot approve new proposals after execution
 added owner can approve new proposals after execution
+old pending payout proposal becomes Stale after config execution
+old pending config proposal becomes Stale after another config execution
 ```
 
 - [ ] **Step 3: Implement approval threshold checks**
@@ -970,17 +1047,27 @@ if (proposal.kind == ProposalKind.SetTreasuryConfig) {
 
 Preserve payout execution in the `PayoutTon` branch.
 
+Important execution rules:
+
+- Required approvals must be checked against the current `storage.configThreshold`, never the proposed future threshold.
+- The proposed config must have no effect unless `ExecuteProposal` succeeds.
+- The config update and proposal terminal status update must happen in one successful transaction.
+- After `configVersion` increments, existing pending proposals with older `configVersionAtCreation` are stale by derived view/status logic.
+
 - [ ] **Step 5: Run execution tests**
 
 Run:
 
 ```powershell
 wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test --filter 'config proposal requires|cannot execute with only payout|execute SetTreasuryConfig|removed owner|added owner|config threshold decrease'"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton test"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton check"
+wsl -- bash -lc "cd '$wslRepo' && /root/.acton/bin/acton fmt --check"
 ```
 
 Expected:
 
-- selected config approval and execution tests pass.
+- selected config approval and execution tests, full tests, contract checks, and formatting pass.
 
 - [ ] **Step 6: Commit**
 
