@@ -46,8 +46,8 @@ This document tracks the broader TreasuryFlow security model. The Track A Treasu
 | Bounded proposal expiry | Payout proposal expiry is in the future and no more than 30 days ahead |
 | Recipient sanity | Payout recipient cannot be the Treasury contract itself |
 | Execute action success | Successful execution emits the intended payout action and child transfer evidence |
-| On-chain history retention | Bounded retention or cleanup/indexer policy is required before mainnet; Core v0.1 still retains proposal/approval history on-chain |
-| Pruning safety | Future pruning must be owner-only in v1, must not remove pending or executable current-version proposals, and must not leave orphan approvals |
+| On-chain history retention | Phase 4 implements bounded retained proposal state with `MAX_RETAINED_PROPOSALS = 100`; full history remains an off-chain/indexer concern before mainnet |
+| Pruning safety | Phase 4 pruning is owner-only in v1, only removes `Executed`, `Cancelled`, `Expired`, or `Stale` proposals, and cannot remove `Pending` or `Executable` current-version proposals |
 | Payload transparency | Payload is decoded or marked with a warning |
 | Replay protection | Proposal/action cannot be reused after terminal status |
 | Current-config authority | Config changes require approval from current owners under the current config threshold |
@@ -63,8 +63,8 @@ This document tracks the broader TreasuryFlow security model. The Track A Treasu
 |---|---|
 | Single owner drain | N-of-M approval threshold |
 | Replay | nonce, status, terminal proposal states |
-| Storage exhaustion | reserve sizing evidence; bounded retention or cleanup/indexer policy remains a mainnet blocker |
-| Prune abuse | Phase 4 design limits pruning to current owners and only to Executed, Cancelled, Expired, or Stale proposals |
+| Storage exhaustion | Phase 4 caps retained proposals at `100`; reserve sizing evidence and storage review remain mainnet blockers |
+| Prune abuse | Phase 4 implementation limits pruning to current owners and only to Executed, Cancelled, Expired, or Stale proposals; Pending and Executable current-version proposals are not prunable |
 | Owner-set growth | hard-coded `MAX_OWNER_COUNT = 10` and deployment-time config validation |
 | Underfunded state-changing message | per-operation minimum inbound value checks |
 | Stale long-lived proposal | maximum proposal expiry window |
@@ -93,3 +93,13 @@ Mainnet is forbidden until all of these are complete:
 - Security checklist is reviewed and all critical findings are resolved.
 - External review or audit is completed.
 - Mainnet release checklist is approved.
+
+## Phase 4 Pruning Evidence
+
+Phase 4 implements owner-only pruning for `Executed`, `Cancelled`, `Expired`, and `Stale` proposals. `Pending` and `Executable` current-version proposals are not prunable.
+
+Approvals are stored inside each proposal as proposal-local approval masks. Pruning deletes the proposal record and its approval state together, so there are no orphan approval records to clean up.
+
+`MAX_RETAINED_PROPOSALS` is `100` in v1. This bounds on-chain retained proposal records, but it does not replace full historical audit or UX history; that history belongs off-chain or in an indexer.
+
+Mainnet remains blocked pending external review/audit and storage evidence review.

@@ -17,14 +17,14 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 | Stale proposal semantics | Covered by tests, needs external review | Stale status is derived from `configVersionAtCreation` and current `configVersion`. |
 | Governance deadlock prevention | Covered by tests, needs external review | Final config rejects impossible threshold and owner-count states. |
 | Config proposal preview/getters | Covered by tests, needs external review | Proposed owner set, proposal kind, required threshold, approvals, and config fields are inspectable. |
-| Duplicate approvals | Covered by tests, needs external review | Unit tests cover duplicate approval rejection; review approval key derivation and map semantics. |
+| Duplicate approvals | Covered by tests, needs external review | Unit tests cover duplicate approval rejection; approvals are proposal-local masks rather than global approval records. |
 | Proposal lifecycle | Covered by tests, needs external review | Unit tests cover pending, executable, executed, canceled, and expired paths. |
 | Expiry | Covered by tests, needs external review | Proposal creation enforces future expiry and a 30-day maximum; approve and execute reject expired proposals. |
 | Cancel constraints | Covered by tests, needs external review | Confirm only intended owner/creator authority can cancel and that cancellation is terminal. |
 | Execute once | Covered by tests, needs external review | Unit tests and testnet flow show proposal `0` reaches `Executed`; review terminal-state enforcement. |
 | Reserve accounting | Covered by tests, needs external review | `feeReserve` uses pre-inbound balance for execute and includes exact-reserve and drain-prevention tests. |
 | Storage reserve sizing | Policy recorded, needs measured max-state tests | See `docs/research/track-a-storage-reserve-policy.md`; regenerate estimates before mainnet. |
-| Proposal history retention | Design drafted, implementation pending | `docs/superpowers/specs/2026-05-18-treasury-proposal-pruning-design.md` defines owner-only pruning, Pruned/NotFound semantics, approval cleanup, and retained-state cap policy. |
+| Proposal history retention | Covered by tests, needs external review | Phase 4 implements owner-only pruning for terminal and stale proposals, `Pruned`/`NotFound` getter semantics, proposal-local approval cleanup, and the retained proposal cap. |
 | Replay and double execution | Covered by tests, needs external review | Confirm proposal IDs, status transitions, and approval keys prevent replay after terminal states. |
 | External message value assumptions | Enforced in contract, needs external review | Create, approve, cancel, and execute enforce per-operation minimum inbound values. |
 | Recipient validation | Covered by tests, needs external review | Payout recipient cannot be the Treasury contract address. |
@@ -52,7 +52,7 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 | Execution atomicity | A payout cannot be marked executed unless the execution path is intended to be final. |
 | Reserve invariant | Execution cannot reduce balance below `feeReserve` except for expected gas effects. |
 | Storage reserve policy | `feeReserve` is sized from measured max-state storage and target reserve lifetime. |
-| History retention policy | Terminal proposal history is bounded on-chain or backed by a reproducible off-chain indexer. Phase 4 pruning must not remove Pending or Executable current-version proposals. |
+| History retention policy | Terminal proposal history is bounded on-chain or backed by a reproducible off-chain indexer. Phase 4 pruning does not remove Pending or Executable current-version proposals. |
 | Replay protection | Reusing old proposal/action data cannot mutate terminal proposal state. |
 | Message value assumptions | Required inbound values are documented and enforced or intentionally delegated to operational scripts. |
 | Getter completeness | Reviewers can inspect owner count, threshold, proposals, approvals, and reserve state. |
@@ -69,6 +69,7 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 - Gas/fee baseline recorded for proposal `1` create, approve, and execute: `docs/research/track-a-gas-fee-baseline.md`.
 - Storage reserve policy and mainnet retention caveats: `docs/research/track-a-storage-reserve-policy.md`.
 - Proposal pruning design: `docs/superpowers/specs/2026-05-18-treasury-proposal-pruning-design.md`.
+- Phase 4 pruning implementation: deterministic tests cover owner-only pruning for `Executed`, `Cancelled`, `Expired`, and `Stale` proposals; rejection of `Pending` and `Executable` pruning; `Pruned` and `NotFound` proposal views; `can_prune`; the `MAX_RETAINED_PROPOSALS = 100` retained-state cap; and no orphan approvals because approvals are stored as proposal-local masks.
 - Source verification dry-run: verifier backend accepted 2 source files and prepared the verification transaction body, which is not recorded in the repository.
 
 ## Mainnet Blockers
@@ -77,6 +78,7 @@ Out of scope for this checklist: Splitter, Jettons, frontend, backend/indexer, T
 - Decide Track A versus Track B with comparable evidence.
 - Send source verification transaction only after explicit approval.
 - Review recorded Track A gas/fee baseline and add rejection-path fee evidence before mainnet.
-- Implement and test bounded history or cleanup/indexer strategy before mainnet, including deterministic approval cleanup with no orphan approval state.
+- External review/audit of the bounded history implementation, proposal-local approval cleanup, and storage evidence before mainnet.
+- Review measured max-state storage evidence and decide off-chain/indexer retention expectations before mainnet.
 - Define operational recovery playbook for stuck proposals, expired proposals, and wallet/key loss.
 - Approve mainnet release checklist.
