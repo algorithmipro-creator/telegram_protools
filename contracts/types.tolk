@@ -59,6 +59,8 @@ enum ProposalViewStatus: uint8 {
     Cancelled = 3
     Expired = 4
     Stale = 5
+    Pruned = 6
+    NotFound = 7
 }
 
 struct (0x54525001) PayoutTonPayload {
@@ -296,6 +298,30 @@ fun Proposal.toView(self, currentConfigVersion: uint32, threshold: uint8): Propo
         newPayoutThreshold,
         newConfigThreshold,
         newFeeReserve,
+    };
+}
+
+fun emptyProposalView(proposalId: uint64, status: ProposalViewStatus): ProposalView {
+    return ProposalView {
+        id: proposalId,
+        kind: ProposalKind.PayoutTon,
+        creator: zeroAddress(),
+        createdAt: 0,
+        expiresAt: 0,
+        configVersionAtCreation: 0,
+        currentConfigVersion: 0,
+        status,
+        approvalCount: 0,
+        approvalMask: 0,
+        requiredApprovalCount: 0,
+        payoutRecipient: zeroAddress(),
+        payoutAmount: 0,
+        recipient: zeroAddress(),
+        amount: 0,
+        newOwnerCount: 0,
+        newPayoutThreshold: 0,
+        newConfigThreshold: 0,
+        newFeeReserve: 0,
     };
 }
 

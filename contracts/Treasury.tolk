@@ -256,8 +256,19 @@ get fun is_owner(owner: address): bool {
 
 get fun proposal(proposalId: uint64): ProposalView {
     val storage = lazy Storage.load();
-    val proposal = storage.mustGetProposal(proposalId);
+    if (proposalId >= storage.proposalSeqno) {
+        return emptyProposalView(proposalId, ProposalViewStatus.NotFound);
+    }
+    val proposalCell = storage.proposals.get(proposalId);
+    if (!proposalCell.isFound) {
+        return emptyProposalView(proposalId, ProposalViewStatus.Pruned);
+    }
+    val proposal = proposalCell.loadValue().load();
     return proposal.toView(storage.configVersion, storage.requiredThreshold(proposal.kind));
+}
+
+get fun proposal_status(proposalId: uint64): ProposalViewStatus {
+    return proposal(proposalId).status;
 }
 
 get fun proposal_kind(proposalId: uint64): ProposalKind {

@@ -591,6 +591,55 @@ get fun `test proposal cap blocks config proposal create`() {
     expect(contract.proposalSeqno()).toEqual(0);
 }
 
+get fun `test proposal id beyond seqno returns not found status`() {
+    val (contract, _, _, _) = setupTreasury();
+
+    val proposal = contract.proposal(0);
+
+    expect(proposal.id).toEqual(0);
+    expect(proposal.status).toEqual(ProposalViewStatus.NotFound);
+    expect(proposal.approvalCount).toEqual(0);
+    expect(proposal.approvalMask).toEqual(0);
+    expect(proposal.requiredApprovalCount).toEqual(0);
+    expect(proposal.creator).toEqual(zeroAddress());
+    expect(proposal.payoutRecipient).toEqual(zeroAddress());
+    expect(proposal.payoutAmount).toEqual(0);
+}
+
+get fun `test missing proposal below seqno returns pruned status`() {
+    val (contract, _, _, _) = setupTreasuryWithMissingProposalBelowSeqno();
+
+    val proposal = contract.proposal(0);
+
+    expect(proposal.id).toEqual(0);
+    expect(proposal.status).toEqual(ProposalViewStatus.Pruned);
+    expect(proposal.approvalCount).toEqual(0);
+    expect(proposal.approvalMask).toEqual(0);
+    expect(proposal.requiredApprovalCount).toEqual(0);
+    expect(proposal.creator).toEqual(zeroAddress());
+    expect(proposal.payoutRecipient).toEqual(zeroAddress());
+    expect(proposal.payoutAmount).toEqual(0);
+}
+
+get fun `test proposal status getter returns matching not found and pruned status`() {
+    val (emptyContract, _, _, _) = setupTreasury();
+    val (prunedContract, _, _, _) = setupTreasuryWithMissingProposalBelowSeqno();
+
+    val notFoundStatus: ProposalViewStatus = net.runGetMethod(
+        emptyContract.address,
+        "proposal_status",
+        [0],
+    );
+    val prunedStatus: ProposalViewStatus = net.runGetMethod(
+        prunedContract.address,
+        "proposal_status",
+        [0],
+    );
+
+    expect(notFoundStatus).toEqual(emptyContract.proposal(0).status);
+    expect(prunedStatus).toEqual(prunedContract.proposal(0).status);
+}
+
 get fun `test proposal kind getter returns payout kind for payout proposal`() {
     val (contract, ownerA, _, _, outsider) = setupThreeOwnerTreasury(1, 3, true);
 
@@ -2331,6 +2380,39 @@ fun setupTreasuryAtProposalCap(
         configVersion: 0,
         proposalSeqno: 0,
         retainedProposalCount: MAX_RETAINED_PROPOSALS,
+        feeReserve: DEFAULT_FEE_RESERVE,
+        owners,
+        proposals: [],
+    });
+
+    val res = contract.deploy(ownerA.address, { value: ton("1.00") });
+    expect(res).toHaveSuccessfulDeploy({ to: contract.address });
+
+    return (contract, ownerA, ownerB, outsider);
+}
+
+fun setupTreasuryWithMissingProposalBelowSeqno(): (
+    Treasury,
+    TestTreasury,
+    TestTreasury,
+    TestTreasury,
+) {
+    val ownerA = testTreasury("missingBelowSeqnoOwnerA");
+    val ownerB = testTreasury("missingBelowSeqnoOwnerB");
+    val outsider = testTreasury("missingBelowSeqnoOutsider");
+
+    var owners: map<address, uint8> = [];
+    owners.set(ownerA.address, OWNER_INDEX_0);
+    owners.set(ownerB.address, OWNER_INDEX_1);
+
+    val contract = Treasury.fromStorage(Storage {
+        ownerCount: 2,
+        payoutThreshold: 2,
+        configThreshold: 2,
+        configThresholdMutable: false,
+        configVersion: 0,
+        proposalSeqno: 1,
+        retainedProposalCount: 0,
         feeReserve: DEFAULT_FEE_RESERVE,
         owners,
         proposals: [],
