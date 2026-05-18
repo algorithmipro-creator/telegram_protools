@@ -41,10 +41,10 @@ Create:
 ## Implementation Rules
 
 - Keep `ProposalViewStatus` existing numeric values stable; append `Pruned` and `NotFound`.
-- Store approvals inside `Proposal` as `approvalMask: uint16`.
+- Store approvals inside `Proposal` as `approvalMask: uint16` in Task 2.
 - Keep `approvalCount: uint8` for threshold checks and UI.
 - Change `owners: map<address, uint8>` semantics: the value is now a stable owner index `0..ownerCount-1`.
-- Remove `approvals: map<uint256, uint8>` from `Storage`.
+- Remove `approvals: map<uint256, uint8>` from `Storage` in Task 2.
 - Add `retainedProposalCount`.
 - Add `MAX_RETAINED_PROPOSALS = 100`.
 - Add `MIN_PRUNE_VALUE = ton("0.05")`.
@@ -53,7 +53,7 @@ Create:
 - Do not change `proposalSeqno` during prune.
 - Do not claim mainnet readiness.
 
-## Task 1: Approval Mask Schema And Owner Index Validation
+## Task 1: Owner Index Validation And Retained Count Schema
 
 **Files:**
 - Modify: `contracts/types.tolk`
@@ -147,26 +147,9 @@ const MAX_RETAINED_PROPOSALS: uint16 = 100
 const MIN_PRUNE_VALUE: coins = ton("0.05")
 ```
 
-Keep `OWNER_KEY_VALUE` only if older tests still need it during the same task. Remove it before the task is committed.
+Keep `OWNER_KEY_VALUE` during Task 1 if legacy approval-map code still uses it. Task 2 removes legacy approval-map storage.
 
-Change `Proposal`:
-
-```tolk
-struct Proposal {
-    id: uint64
-    kind: ProposalKind
-    creator: address
-    createdAt: uint32
-    expiresAt: uint32
-    configVersionAtCreation: uint32
-    status: ProposalStatus
-    approvalCount: uint8
-    approvalMask: uint16
-    payload: ProposalPayload
-}
-```
-
-Change `Storage`:
+Change `Storage` by adding only `retainedProposalCount` in Task 1. Keep `approvals` until Task 2:
 
 ```tolk
 struct Storage {
@@ -180,6 +163,7 @@ struct Storage {
     feeReserve: coins
     owners: map<address, uint8>
     proposals: map<uint64, Cell<Proposal>>
+    approvals: map<uint256, uint8>
 }
 ```
 
