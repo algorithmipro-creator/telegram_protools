@@ -958,6 +958,7 @@ get fun `test executable cancel config proposal is rejected`() {
 get fun `test expired cancel config proposal is rejected`() {
     val (contract, ownerA, ownerB, ownerC, _) = setupThreeOwnerTreasury(2, 3, true);
     val newOwners = threeOwners(ownerA, ownerB, ownerC);
+    val expiresAt = blockchain.now() + DEFAULT_EXPIRY_SECONDS;
 
     val create = contract.sendCreateConfigProposal(
         ownerA.address,
@@ -966,7 +967,7 @@ get fun `test expired cancel config proposal is rejected`() {
         3,
         DEFAULT_FEE_RESERVE,
         newOwners,
-        blockchain.now() + 1,
+        expiresAt,
         { value: MIN_CREATE_VALUE },
     );
     expect(create).toHaveSuccessfulTx<CreateConfigProposal>({
@@ -974,7 +975,7 @@ get fun `test expired cancel config proposal is rejected`() {
         to: contract.address,
     });
 
-    testSetNow((blockchain.now() + 2) as uint32);
+    testSetNow((expiresAt + 1) as uint32);
 
     val res = contract.sendCancelProposal(ownerA.address, 0, { value: MIN_CANCEL_VALUE });
     expect(res).toHaveFailedTx<CancelProposal>({
@@ -1698,11 +1699,12 @@ get fun `test executable proposal cannot be cancelled`() {
 
 get fun `test expired proposal cannot be approved`() {
     val (contract, ownerA, ownerB, outsider) = setupTreasury();
+    val expiresAt = blockchain.now() + DEFAULT_EXPIRY_SECONDS;
     val res = contract.sendCreatePayoutProposal(
         ownerA.address,
         outsider.address,
         ton("0.20"),
-        blockchain.now() + 1,
+        expiresAt,
         { value: ton("0.05") },
     );
     expect(res).toHaveSuccessfulTx<CreatePayoutProposal>({
@@ -1710,7 +1712,7 @@ get fun `test expired proposal cannot be approved`() {
         to: contract.address,
     });
 
-    testSetNow((blockchain.now() + 2) as uint32);
+    testSetNow((expiresAt + 1) as uint32);
 
     val approval = contract.sendApproveProposal(ownerB.address, 0, { value: ton("0.05") });
     expect(approval).toHaveFailedTx<ApproveProposal>({
@@ -1799,11 +1801,12 @@ get fun `test fee reserve prevents draining treasury`() {
 
 get fun `test expired proposal cannot be executed`() {
     val (contract, ownerA, ownerB, recipient) = setupTreasury();
+    val expiresAt = blockchain.now() + DEFAULT_EXPIRY_SECONDS;
     val create = contract.sendCreatePayoutProposal(
         ownerA.address,
         recipient.address,
         ton("0.20"),
-        blockchain.now() + 1,
+        expiresAt,
         { value: ton("0.05") },
     );
     expect(create).toHaveSuccessfulTx<CreatePayoutProposal>({
@@ -1812,7 +1815,7 @@ get fun `test expired proposal cannot be executed`() {
     });
     approveProposal(contract, ownerB, 0);
 
-    testSetNow((blockchain.now() + 2) as uint32);
+    testSetNow((expiresAt + 1) as uint32);
 
     val res = contract.sendExecuteProposal(ownerA.address, 0, { value: ton("0.05") });
     expect(res).toHaveFailedTx<ExecuteProposal>({
@@ -2308,18 +2311,19 @@ get fun `test owner can prune cancelled proposal`() {
 
 get fun `test owner can prune expired proposal`() {
     val (contract, ownerA, _, recipient) = setupTreasury();
+    val expiresAt = blockchain.now() + DEFAULT_EXPIRY_SECONDS;
     val create = contract.sendCreatePayoutProposal(
         ownerA.address,
         recipient.address,
         ton("0.20"),
-        blockchain.now() + 1,
+        expiresAt,
         { value: MIN_CREATE_VALUE },
     );
     expect(create).toHaveSuccessfulTx<CreatePayoutProposal>({
         from: ownerA.address,
         to: contract.address,
     });
-    testSetNow((blockchain.now() + 2) as uint32);
+    testSetNow((expiresAt + 1) as uint32);
     expect(contract.proposal(0).status).toEqual(ProposalViewStatus.Expired);
 
     val res = contract.sendPruneProposal(ownerA.address, 0, { value: MIN_PRUNE_VALUE });
@@ -2499,18 +2503,19 @@ get fun `test can prune allows cancelled expired and stale proposals`() {
     });
     expect(cancelledContract.canPrune(0)).toBeTrue();
 
+    val expiresAt = blockchain.now() + DEFAULT_EXPIRY_SECONDS;
     val createExpired = cancelledContract.sendCreatePayoutProposal(
         ownerA.address,
         outsider.address,
         ton("0.20"),
-        blockchain.now() + 1,
+        expiresAt,
         { value: MIN_CREATE_VALUE },
     );
     expect(createExpired).toHaveSuccessfulTx<CreatePayoutProposal>({
         from: ownerA.address,
         to: cancelledContract.address,
     });
-    testSetNow((blockchain.now() + 2) as uint32);
+    testSetNow((expiresAt + 1) as uint32);
     expect(cancelledContract.canPrune(1)).toBeTrue();
 
     val (staleContract, _, _, _) = setupTreasuryWithSeededProposal(
