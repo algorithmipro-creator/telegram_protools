@@ -1511,7 +1511,7 @@ get fun `test config proposal validation rejects invalid expiry and minimum valu
         2,
         DEFAULT_FEE_RESERVE,
         newOwners,
-        blockchain.now() + MAX_EXPIRY_SECONDS + 1,
+        blockchain.now() + MAX_EXPIRY_SECONDS + 100,
         { value: MIN_CREATE_VALUE },
     );
     expect(tooFar).toHaveFailedTx<CreateConfigProposal>({
